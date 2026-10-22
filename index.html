@@ -1051,13 +1051,6 @@ table.data tr:hover td { background: #fafafa; }
 .link-danger:hover { color: var(--danger-hover); }
 .kb-role-select { max-width: 130px; }
 
-.tree-row.is-disabled .tree-label {
-  color: var(--text-tertiary);
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
-}
-.tree-row.is-disabled .tree-ico { opacity: 0.45; }
-.tree-row.is-disabled .tree-badge { opacity: 0.6; }
 
 .ctx-item.ctx-danger { color: #cf1322; }
 .ctx-item.ctx-danger:hover { background: #fff1f0; color: #a8071a; }
@@ -1301,8 +1294,6 @@ table.data tr:hover td { background: #fafafa; }
   <div class="ctx-menu" id="ctx-menu">
     <button class="ctx-item" type="button" data-action="org-add">新增子节点</button>
     <button class="ctx-item" type="button" data-action="org-edit">编辑名称</button>
-    <button class="ctx-item" type="button" data-action="org-disable">停用本节点</button>
-    <button class="ctx-item" type="button" data-action="org-enable">启用本节点</button>
     <button class="ctx-item ctx-danger" type="button" data-action="org-delete">删除</button>
     <div class="ctx-divider"></div>
     <button class="ctx-item" type="button" data-action="batch-grant">批量赋予角色</button>
@@ -1514,7 +1505,7 @@ table.data tr:hover td { background: #fafafa; }
   "use strict";
 
   // ——— Seed: org tree ———
-  // type: company | subsidiary | dept | position; optional disabled: true
+  // type: company | subsidiary | dept | position
   const ORG_STORAGE_KEY = "org-admin-poc-org-tree-v1";
   const TYPE_LABEL = { company: "公司", subsidiary: "子公司", dept: "部门", position: "岗位" };
   const DEFAULT_ORG_TREE = [
@@ -1601,81 +1592,134 @@ table.data tr:hover td { background: #fafafa; }
     persistOrgTree();
   }
 
-  // ——— Seed: permission modules (功能权限 only) ———
+  // ——— Seed: permission modules（与 Wiki §3.2 功能权限矩阵一一对应） ———
   const permModules = [
     {
-      key: "entry", name: "入口与工作台",
+      key: "entry", name: "入口权限",
       perms: [
-        { key: "entry.home", label: "工作台" },
-        { key: "entry.notice", label: "消息通知" },
+        { key: "entry.web", label: "Web 端访问权限" },
+        { key: "entry.m", label: "M 端访问权限" },
       ],
     },
     {
-      key: "org_user", name: "组织与用户管理",
+      key: "org_user", name: "组织与用户管理权限",
       perms: [
-        { key: "user.view", label: "查看用户" },
-        { key: "user.create", label: "新建用户" },
+        { key: "user.profile", label: "个人信息管理" },
+        { key: "user.view", label: "查看用户（列表）" },
+        { key: "user.create", label: "创建用户" },
         { key: "user.edit", label: "编辑用户" },
         { key: "user.delete", label: "删除用户" },
-        { key: "user.reset_pwd", label: "重置密码" },
-        { key: "user.batch_role", label: "批量赋角" },
         { key: "org.view", label: "查看组织树" },
         { key: "org.create", label: "新增组织节点" },
         { key: "org.edit", label: "编辑组织节点" },
         { key: "org.delete", label: "删除组织节点" },
-        { key: "org.disable", label: "停用组织节点" },
       ],
     },
     {
-      key: "role", name: "角色管理",
+      key: "role", name: "角色管理权限",
       perms: [
         { key: "role.view", label: "查看角色" },
-        { key: "role.create", label: "新建角色" },
+        { key: "role.create", label: "创建角色" },
         { key: "role.edit", label: "编辑角色" },
         { key: "role.delete", label: "删除角色" },
-        { key: "role.assign_perm", label: "配置功能权限" },
       ],
     },
     {
-      key: "agent", name: "Agent",
+      key: "agent", name: "Agent 管理权限",
       perms: [
-        { key: "agent.view", label: "查看 Agent" },
-        { key: "agent.create", label: "创建 Agent" },
-        { key: "agent.edit", label: "编辑 Agent" },
-        { key: "agent.publish", label: "发布 Agent" },
-        { key: "agent.delete", label: "删除 Agent" },
+        { key: "agent.use", label: "使用Agent" },
+        { key: "agent.view", label: "查看Agent" },
+        { key: "agent.create", label: "创建Agent" },
+        { key: "agent.edit_basic", label: "编辑Agent（基础信息）" },
+        { key: "agent.edit_config", label: "编辑Agent（配置信息）" },
+        { key: "agent.perm", label: "Agent 权限管理" },
+        { key: "agent.logs", label: "查看 Agent 运行日志" },
+        { key: "agent.delete", label: "删除Agent" },
+        { key: "agent.publish", label: "发布Agent" },
       ],
     },
     {
-      key: "kb", name: "知识库",
+      key: "kb", name: "知识库管理权限",
       perms: [
         { key: "kb.view", label: "查看知识库" },
         { key: "kb.create", label: "创建知识库" },
-        { key: "kb.edit", label: "编辑知识库" },
-        { key: "kb.upload", label: "上传文档" },
+        { key: "kb.edit", label: "编辑知识库（基本信息）" },
+        { key: "kb.perm", label: "知识库权限设置" },
         { key: "kb.delete", label: "删除知识库" },
+        { key: "kb.files", label: "知识库文件管理" },
+        { key: "kb.folders", label: "文件夹管理（增删改）" },
       ],
     },
     {
-      key: "drawing", name: "图纸库",
+      key: "drawing", name: "图纸库管理权限",
       perms: [
         { key: "drawing.view", label: "查看图纸库" },
         { key: "drawing.create", label: "创建图纸库" },
-        { key: "drawing.edit", label: "编辑图纸库" },
-        { key: "drawing.delete", label: "删除图纸库" },
+        { key: "drawing.edit", label: "编辑图纸库（基本信息）" },
+        { key: "drawing.perm", label: "图纸库权限设置" },
+        { key: "drawing.delete", label: "删除知识库" },
+        { key: "drawing.files", label: "图纸库文件管理" },
+      ],
+    },
+    {
+      key: "tag", name: "标签管理",
+      perms: [
+        { key: "tag.view", label: "查看标签" },
+        { key: "tag.create", label: "创建标签" },
+        { key: "tag.edit", label: "修改标签" },
+        { key: "tag.delete", label: "删除标签" },
+      ],
+    },
+    {
+      key: "legend", name: "图例管理",
+      perms: [
+        { key: "legend.view", label: "查看图例" },
+        { key: "legend.create", label: "创建图例" },
+        { key: "legend.edit", label: "修改图例" },
+        { key: "legend.delete", label: "删除图例" },
+      ],
+    },
+    {
+      key: "isol", name: "可隔离清单",
+      perms: [
+        { key: "isol.view", label: "查看可隔离清单" },
+        { key: "isol.create", label: "创建可隔离设备" },
+        { key: "isol.edit", label: "修改可隔离设备" },
+        { key: "isol.delete", label: "删除可隔离设备" },
       ],
     },
     {
       key: "sys", name: "系统设置",
       perms: [
-        { key: "sys.basic", label: "基础设置" },
-        { key: "sys.audit", label: "审计日志" },
-        { key: "sys.sso", label: "登录与 SSO" },
+        { key: "sys.basic", label: "企业基础信息" },
+        { key: "sys.recommend", label: "顶部资源推荐" },
+      ],
+    },
+    {
+      key: "about", name: "关于平台",
+      perms: [
+        { key: "about.view", label: "查看平台基础信息" },
+        { key: "about.license", label: "更新License" },
       ],
     },
   ];
 
   const ALL_PERMS = permModules.flatMap((m) => m.perms.map((p) => p.key));
+
+  // 预置三角色默认勾选 = Wiki 矩阵 ✅（管理员全开；子管理员/普通用户按列）
+  const SUB_ADMIN_PERMS = new Set([
+    "entry.web", "entry.m",
+    "user.profile",
+    "agent.use", "agent.view", "agent.create", "agent.edit_basic", "agent.edit_config",
+    "agent.perm", "agent.logs", "agent.delete", "agent.publish",
+    "kb.view", "kb.create", "kb.edit", "kb.perm", "kb.delete", "kb.files", "kb.folders",
+    "drawing.view", "drawing.create", "drawing.edit", "drawing.perm", "drawing.delete", "drawing.files",
+  ]);
+  const NORMAL_USER_PERMS = new Set([
+    "entry.web",
+    "user.profile",
+    "agent.use",
+  ]);
 
   // ——— Seed: roles (功能权限 only；资源权限在实例侧) ———
   let roles = [
@@ -1689,19 +1733,16 @@ table.data tr:hover td { background: #fafafa; }
     {
       id: "r-sub",
       name: "子管理员",
-      desc: "系统预置 · 可管理用户与业务资源，不可改系统级配置",
+      desc: "系统预置 · 可管 Agent/知识库/图纸库等业务入口，无组织用户与角色管理",
       preset: true,
-      perms: ALL_PERMS.filter((k) => !k.startsWith("sys.") && k !== "role.delete"),
+      perms: ALL_PERMS.filter((k) => SUB_ADMIN_PERMS.has(k)),
     },
     {
       id: "r-user",
       name: "普通用户",
-      desc: "系统预置 · 基础查看与使用",
+      desc: "系统预置 · Web 访问 + 个人信息 + 使用 Agent",
       preset: true,
-      perms: [
-        "entry.home", "entry.notice",
-        "agent.view", "kb.view", "org.view", "user.view", "role.view",
-      ],
+      perms: ALL_PERMS.filter((k) => NORMAL_USER_PERMS.has(k)),
     },
     {
       id: "r-ops",
@@ -1709,10 +1750,10 @@ table.data tr:hover td { background: #fafafa; }
       desc: "自定义 · 可编辑 Agent/知识库入口；自己创建的资源默认为所有者",
       preset: false,
       perms: [
-        "entry.home", "entry.notice",
-        "user.view", "org.view",
-        "agent.view", "agent.edit",
-        "kb.view", "kb.edit", "kb.upload",
+        "entry.web", "entry.m",
+        "user.profile",
+        "agent.use", "agent.view", "agent.edit_basic", "agent.edit_config",
+        "kb.view", "kb.edit", "kb.files",
       ],
     },
   ];
@@ -2056,7 +2097,6 @@ table.data tr:hover td { background: #fafafa; }
         const rowEl = document.createElement("div");
         rowEl.className = "tree-row";
         if (selectedId === n.id) rowEl.classList.add("active");
-        if (n.disabled) rowEl.classList.add("is-disabled");
         if (picker && onlyPickPosition) {
           if (n.type === "position") rowEl.classList.add("selectable");
           else rowEl.classList.add("disabled");
@@ -2085,8 +2125,8 @@ table.data tr:hover td { background: #fafafa; }
 
         const label = document.createElement("span");
         label.className = "tree-label";
-        label.textContent = n.name + (n.disabled ? "（已停用）" : "");
-        label.title = n.name + (n.disabled ? " · 已停用（仅本节点）" : "");
+        label.textContent = n.name;
+        label.title = n.name;
 
         const count = usersUnderOrg(n.id).length;
         const badge = document.createElement("span");
@@ -2159,8 +2199,6 @@ table.data tr:hover td { background: #fafafa; }
     const canAdd = allowedChildTypes(node.type).length > 0;
     const batchOk = node.type === "dept" || node.type === "position";
     ctxMenu.querySelector('[data-action="org-add"]').style.display = canAdd ? "" : "none";
-    ctxMenu.querySelector('[data-action="org-disable"]').style.display = node.disabled ? "none" : "";
-    ctxMenu.querySelector('[data-action="org-enable"]').style.display = node.disabled ? "" : "none";
     ctxMenu.querySelector('[data-action="batch-grant"]').style.display = batchOk ? "" : "none";
     ctxMenu.classList.add("show");
     const x = Math.min(e.clientX, window.innerWidth - 200);
@@ -2189,16 +2227,6 @@ table.data tr:hover td { background: #fafafa; }
     const id = state.ctxNodeId;
     hideCtxMenu();
     if (id) openOrgEdit(id);
-  });
-  ctxMenu.querySelector('[data-action="org-disable"]').addEventListener("click", () => {
-    const id = state.ctxNodeId;
-    hideCtxMenu();
-    if (id) toggleOrgDisabled(id, true);
-  });
-  ctxMenu.querySelector('[data-action="org-enable"]').addEventListener("click", () => {
-    const id = state.ctxNodeId;
-    hideCtxMenu();
-    if (id) toggleOrgDisabled(id, false);
   });
   ctxMenu.querySelector('[data-action="org-delete"]').addEventListener("click", () => {
     const id = state.ctxNodeId;
@@ -2246,19 +2274,10 @@ table.data tr:hover td { background: #fafafa; }
     document.getElementById("of-parent-row").style.display = "none";
     document.getElementById("of-type-row").style.display = "none";
     document.getElementById("of-hint").textContent =
-      "类型：" + TYPE_LABEL[node.type] + "（本期不可改类型；停用仅影响本节点）";
+      "类型：" + TYPE_LABEL[node.type] + "（本期不可改类型）";
     openModal("modal-org");
   }
 
-  function toggleOrgDisabled(id, disabled) {
-    const node = findNode(id);
-    if (!node) return;
-    node.disabled = !!disabled;
-    persistOrgTree();
-    toast((disabled ? "已停用「" : "已启用「") + node.name + "」（仅本节点）");
-    renderMainTree();
-    renderUsers();
-  }
 
   function deleteOrgNode(id) {
     const node = findNode(id);
@@ -2785,7 +2804,7 @@ table.data tr:hover td { background: #fafafa; }
         name,
         desc: desc || "自定义角色",
         preset: false,
-        perms: ["entry.home", "entry.notice", "org.view", "user.view", "role.view", "agent.view", "kb.view"],
+        perms: ["entry.web", "user.profile", "agent.use"],
       });
       state.selectedRoleId = id;
       toast("已创建角色 " + name);
