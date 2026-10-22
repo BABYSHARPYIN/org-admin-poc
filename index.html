@@ -2461,6 +2461,11 @@ table.data tr:hover td { background: #fafafa; }
     });
   }
 
+  document.getElementById("uf-org-search").addEventListener("input", (e) => {
+    state.orgPickerQuery = e.target.value || "";
+    renderOrgPicker();
+  });
+
   document.getElementById("user-search").addEventListener("input", (e) => {
     state.userSearch = e.target.value;
     renderUsers();
