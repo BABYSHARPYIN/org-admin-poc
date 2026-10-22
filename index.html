@@ -1039,6 +1039,19 @@ table.data tr:hover td { background: #fafafa; }
 .link-danger:hover { color: var(--danger-hover); }
 .kb-role-select { max-width: 130px; }
 
+.tree-row.is-disabled .tree-label {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.tree-row.is-disabled .tree-ico { opacity: 0.45; }
+.tree-row.is-disabled .tree-badge { opacity: 0.6; }
+
+.ctx-item.ctx-danger { color: #cf1322; }
+.ctx-item.ctx-danger:hover { background: #fff1f0; color: #a8071a; }
+
+.hint { margin-top: 4px; }
+
   </style>
 </head>
 <body>
@@ -1086,7 +1099,10 @@ table.data tr:hover td { background: #fafafa; }
             <div class="split-left panel">
               <div class="panel-header">
                 <h2>组织架构</h2>
-                <button class="btn btn-sm" type="button" id="btn-expand-all" title="展开/折叠">展开全部</button>
+                <div class="btn-group">
+                  <button class="btn btn-primary btn-sm" type="button" id="btn-create-org" title="在选中节点下新增">+ 新增组织</button>
+                  <button class="btn btn-sm" type="button" id="btn-expand-all" title="展开/折叠">展开全部</button>
+                </div>
               </div>
               <div class="legend">
                 <span>🏢 公司</span>
@@ -1271,9 +1287,52 @@ table.data tr:hover td { background: #fafafa; }
 
   <!-- Context menu for org tree -->
   <div class="ctx-menu" id="ctx-menu">
+    <button class="ctx-item" type="button" data-action="org-add">新增子节点</button>
+    <button class="ctx-item" type="button" data-action="org-edit">编辑名称</button>
+    <button class="ctx-item" type="button" data-action="org-disable">停用本节点</button>
+    <button class="ctx-item" type="button" data-action="org-enable">启用本节点</button>
+    <button class="ctx-item ctx-danger" type="button" data-action="org-delete">删除</button>
+    <div class="ctx-divider"></div>
     <button class="ctx-item" type="button" data-action="batch-grant">批量赋予角色</button>
     <div class="ctx-divider"></div>
     <button class="ctx-item" type="button" data-action="filter-here" disabled>已含下级筛选（选中即生效）</button>
+  </div>
+
+
+  <!-- Modal: Org node form -->
+  <div class="modal-mask" id="modal-org">
+    <div class="modal" style="width:440px">
+      <div class="modal-header">
+        <h3 id="org-modal-title">新增组织节点</h3>
+        <button class="btn-icon" type="button" data-close="modal-org">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="org-form" autocomplete="off">
+          <input type="hidden" id="of-mode" />
+          <input type="hidden" id="of-parent-id" />
+          <input type="hidden" id="of-id" />
+          <div class="form-row" id="of-parent-row">
+            <label>上级节点</label>
+            <div class="input" id="of-parent-label" style="background:var(--fill);cursor:default"></div>
+          </div>
+          <div class="form-row" id="of-type-row">
+            <label>节点类型<span class="req">*</span></label>
+            <select class="input" id="of-type"></select>
+            <div class="field-error" id="err-org-type">请选择类型</div>
+          </div>
+          <div class="form-row">
+            <label>名称<span class="req">*</span></label>
+            <input class="input" id="of-name" maxlength="64" placeholder="节点名称" />
+            <div class="field-error" id="err-org-name">请填写名称</div>
+          </div>
+          <p class="hint" id="of-hint" style="font-size:12px;color:var(--text-secondary);margin:0"></p>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" type="button" data-close="modal-org">取消</button>
+        <button class="btn btn-primary" type="button" id="btn-save-org">保存</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal: User form -->
@@ -1438,8 +1497,10 @@ table.data tr:hover td { background: #fafafa; }
   "use strict";
 
   // ——— Seed: org tree ———
-  // type: company | subsidiary | dept | position
-  const orgTree = [
+  // type: company | subsidiary | dept | position; optional disabled: true
+  const ORG_STORAGE_KEY = "org-admin-poc-org-tree-v1";
+  const TYPE_LABEL = { company: "公司", subsidiary: "子公司", dept: "部门", position: "岗位" };
+  const DEFAULT_ORG_TREE = [
     {
       id: "c1", name: "星河科技集团", type: "company",
       children: [
@@ -1498,6 +1559,30 @@ table.data tr:hover td { background: #fafafa; }
       ],
     },
   ];
+
+  let orgTree = loadOrgTree();
+
+  function loadOrgTree() {
+    try {
+      const raw = localStorage.getItem(ORG_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    } catch (_) {}
+    return JSON.parse(JSON.stringify(DEFAULT_ORG_TREE));
+  }
+
+  function persistOrgTree() {
+    try {
+      localStorage.setItem(ORG_STORAGE_KEY, JSON.stringify(orgTree));
+    } catch (_) {}
+  }
+
+  function cloneDefaultOrgTree() {
+    orgTree = JSON.parse(JSON.stringify(DEFAULT_ORG_TREE));
+    persistOrgTree();
+  }
 
   // ——— Seed: permission modules (功能权限 only) ———
   const permModules = [
@@ -1686,6 +1771,81 @@ table.data tr:hover td { background: #fafafa; }
     return null;
   }
 
+  function getParent(id) {
+    if (orgTree.some((n) => n.id === id)) return null;
+    for (const n of orgTree) {
+      const hit = findParentIn(n, id);
+      if (hit !== undefined) return hit;
+    }
+    return undefined;
+  }
+
+  function findParentIn(node, id) {
+    if (!node.children) return undefined;
+    for (const c of node.children) {
+      if (c.id === id) return node;
+      const deeper = findParentIn(c, id);
+      if (deeper !== undefined) return deeper;
+    }
+    return undefined;
+  }
+
+  function removeNodeFromTree(id, nodes = orgTree) {
+    const idx = nodes.findIndex((n) => n.id === id);
+    if (idx >= 0) {
+      nodes.splice(idx, 1);
+      return true;
+    }
+    for (const n of nodes) {
+      if (n.children && removeNodeFromTree(id, n.children)) return true;
+    }
+    return false;
+  }
+
+  function allowedChildTypes(parentType) {
+    switch (parentType) {
+      case "company": return ["subsidiary", "dept"];
+      case "subsidiary": return ["dept"];
+      case "dept": return ["dept", "position"];
+      case "position": return [];
+      default: return [];
+    }
+  }
+
+  function nextOrgId(type) {
+    const prefix = { company: "c", subsidiary: "s", dept: "d", position: "p" }[type] || "n";
+    let max = 0;
+    walk(orgTree, (n) => {
+      const m = String(n.id).match(new RegExp("^" + prefix + "(\\d+)$"));
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+    });
+    // also scan alphanumeric ids like d1-1
+    walk(orgTree, (n) => {
+      if (!String(n.id).startsWith(prefix)) return;
+      const nums = String(n.id).match(/\d+/g);
+      if (nums) max = Math.max(max, ...nums.map((x) => parseInt(x, 10)));
+    });
+    return prefix + (max + 1);
+  }
+
+  function nodeHasUsers(nodeId) {
+    return usersUnderOrg(nodeId).length > 0;
+  }
+
+  function canDeleteNode(node) {
+    if (!node) return { ok: false, reason: "节点不存在" };
+    if (node.children && node.children.length) {
+      return { ok: false, reason: "存在子节点，不可删除。请先删除或移走下级。" };
+    }
+    if (nodeHasUsers(node.id)) {
+      return { ok: false, reason: "节点下仍有用户，不可删除。请先调整人员归属。" };
+    }
+    if (node.type === "company" && orgTree.length <= 1 && orgTree[0].id === node.id) {
+      return { ok: false, reason: "至少保留一个公司根节点。" };
+    }
+    return { ok: true };
+  }
+
   function pathOf(id) {
     let result = null;
     walk(orgTree, (n, _p, path) => {
@@ -1850,6 +2010,7 @@ table.data tr:hover td { background: #fafafa; }
         const rowEl = document.createElement("div");
         rowEl.className = "tree-row";
         if (selectedId === n.id) rowEl.classList.add("active");
+        if (n.disabled) rowEl.classList.add("is-disabled");
         if (picker && onlyPickPosition) {
           if (n.type === "position") rowEl.classList.add("selectable");
           else rowEl.classList.add("disabled");
@@ -1878,8 +2039,8 @@ table.data tr:hover td { background: #fafafa; }
 
         const label = document.createElement("span");
         label.className = "tree-label";
-        label.textContent = n.name;
-        label.title = n.name;
+        label.textContent = n.name + (n.disabled ? "（已停用）" : "");
+        label.title = n.name + (n.disabled ? " · 已停用（仅本节点）" : "");
 
         const count = usersUnderOrg(n.id).length;
         const badge = document.createElement("span");
@@ -1891,7 +2052,7 @@ table.data tr:hover td { background: #fafafa; }
         rowEl.appendChild(label);
         if (!picker) rowEl.appendChild(badge);
 
-        if (!picker && (n.type === "dept" || n.type === "position")) {
+        if (!picker) {
           const more = document.createElement("button");
           more.type = "button";
           more.className = "tree-more";
@@ -1920,7 +2081,6 @@ table.data tr:hover td { background: #fafafa; }
 
         rowEl.addEventListener("contextmenu", (e) => {
           if (picker) return;
-          if (n.type !== "dept" && n.type !== "position") return;
           e.preventDefault();
           showCtxMenu(e, n);
         });
@@ -1950,9 +2110,15 @@ table.data tr:hover td { background: #fafafa; }
   const ctxMenu = document.getElementById("ctx-menu");
   function showCtxMenu(e, node) {
     state.ctxNodeId = node.id;
+    const canAdd = allowedChildTypes(node.type).length > 0;
+    const batchOk = node.type === "dept" || node.type === "position";
+    ctxMenu.querySelector('[data-action="org-add"]').style.display = canAdd ? "" : "none";
+    ctxMenu.querySelector('[data-action="org-disable"]').style.display = node.disabled ? "none" : "";
+    ctxMenu.querySelector('[data-action="org-enable"]').style.display = node.disabled ? "" : "none";
+    ctxMenu.querySelector('[data-action="batch-grant"]').style.display = batchOk ? "" : "none";
     ctxMenu.classList.add("show");
-    const x = Math.min(e.clientX, window.innerWidth - 180);
-    const y = Math.min(e.clientY, window.innerHeight - 100);
+    const x = Math.min(e.clientX, window.innerWidth - 200);
+    const y = Math.min(e.clientY, window.innerHeight - 220);
     ctxMenu.style.left = x + "px";
     ctxMenu.style.top = y + "px";
   }
@@ -1967,6 +2133,167 @@ table.data tr:hover td { background: #fafafa; }
     const id = state.ctxNodeId;
     hideCtxMenu();
     if (id) openBatchGrant(id);
+  });
+  ctxMenu.querySelector('[data-action="org-add"]').addEventListener("click", () => {
+    const id = state.ctxNodeId;
+    hideCtxMenu();
+    if (id) openOrgCreate(id);
+  });
+  ctxMenu.querySelector('[data-action="org-edit"]').addEventListener("click", () => {
+    const id = state.ctxNodeId;
+    hideCtxMenu();
+    if (id) openOrgEdit(id);
+  });
+  ctxMenu.querySelector('[data-action="org-disable"]').addEventListener("click", () => {
+    const id = state.ctxNodeId;
+    hideCtxMenu();
+    if (id) toggleOrgDisabled(id, true);
+  });
+  ctxMenu.querySelector('[data-action="org-enable"]').addEventListener("click", () => {
+    const id = state.ctxNodeId;
+    hideCtxMenu();
+    if (id) toggleOrgDisabled(id, false);
+  });
+  ctxMenu.querySelector('[data-action="org-delete"]').addEventListener("click", () => {
+    const id = state.ctxNodeId;
+    hideCtxMenu();
+    if (id) deleteOrgNode(id);
+  });
+
+  function openOrgCreate(parentId) {
+    const parent = parentId ? findNode(parentId) : null;
+    const types = parent ? allowedChildTypes(parent.type) : ["company"];
+    if (!types.length) {
+      toast("该节点类型下不可再新增子节点", "error");
+      return;
+    }
+    document.getElementById("org-modal-title").textContent = "新增组织节点";
+    document.getElementById("of-mode").value = "create";
+    document.getElementById("of-parent-id").value = parentId || "";
+    document.getElementById("of-id").value = "";
+    document.getElementById("of-name").value = "";
+    document.getElementById("err-org-name").classList.remove("show");
+    document.getElementById("err-org-type").classList.remove("show");
+    document.getElementById("of-parent-row").style.display = parent ? "" : "none";
+    document.getElementById("of-parent-label").textContent = parent
+      ? (TYPE_LABEL[parent.type] + " · " + parent.name)
+      : "（根级）";
+    document.getElementById("of-type-row").style.display = "";
+    const sel = document.getElementById("of-type");
+    sel.innerHTML = types.map((t) => `<option value="${t}">${TYPE_LABEL[t]}</option>`).join("");
+    sel.value = types[0];
+    document.getElementById("of-hint").textContent = parent
+      ? "将作为「" + parent.name + "」的子节点；岗位不可再挂下级。"
+      : "将创建根级公司节点。";
+    openModal("modal-org");
+  }
+
+  function openOrgEdit(id) {
+    const node = findNode(id);
+    if (!node) return;
+    document.getElementById("org-modal-title").textContent = "编辑组织节点";
+    document.getElementById("of-mode").value = "edit";
+    document.getElementById("of-parent-id").value = "";
+    document.getElementById("of-id").value = id;
+    document.getElementById("of-name").value = node.name;
+    document.getElementById("err-org-name").classList.remove("show");
+    document.getElementById("of-parent-row").style.display = "none";
+    document.getElementById("of-type-row").style.display = "none";
+    document.getElementById("of-hint").textContent =
+      "类型：" + TYPE_LABEL[node.type] + "（本期不可改类型；停用仅影响本节点）";
+    openModal("modal-org");
+  }
+
+  function toggleOrgDisabled(id, disabled) {
+    const node = findNode(id);
+    if (!node) return;
+    node.disabled = !!disabled;
+    persistOrgTree();
+    toast((disabled ? "已停用「" : "已启用「") + node.name + "」（仅本节点）");
+    renderMainTree();
+    renderUsers();
+  }
+
+  function deleteOrgNode(id) {
+    const node = findNode(id);
+    if (!node) return;
+    const check = canDeleteNode(node);
+    if (!check.ok) {
+      toast(check.reason, "error");
+      return;
+    }
+    confirmDialog(
+      "删除组织节点",
+      "确认删除「" + escapeHtml(node.name) + "」（" + TYPE_LABEL[node.type] + "）？此操作不可恢复。",
+      () => {
+        removeNodeFromTree(id);
+        if (state.selectedOrgId === id) state.selectedOrgId = null;
+        persistOrgTree();
+        toast("已删除「" + node.name + "」");
+        renderMainTree();
+        renderUsers();
+      }
+    );
+  }
+
+  document.getElementById("btn-create-org").addEventListener("click", () => {
+    const parentId = state.selectedOrgId;
+    if (!parentId) {
+      const root = orgTree[0];
+      if (!root) {
+        openOrgCreate(null);
+        return;
+      }
+      toast("未选中节点，已默认挂到根公司下");
+      openOrgCreate(root.id);
+      return;
+    }
+    openOrgCreate(parentId);
+  });
+
+  document.getElementById("btn-save-org").addEventListener("click", () => {
+    const mode = document.getElementById("of-mode").value;
+    const name = document.getElementById("of-name").value.trim();
+    if (!name) {
+      document.getElementById("err-org-name").classList.add("show");
+      return;
+    }
+    document.getElementById("err-org-name").classList.remove("show");
+    if (mode === "edit") {
+      const node = findNode(document.getElementById("of-id").value);
+      if (!node) return;
+      node.name = name;
+      persistOrgTree();
+      closeModal("modal-org");
+      toast("已更新「" + name + "」");
+      renderMainTree();
+      renderUsers();
+      return;
+    }
+    const parentId = document.getElementById("of-parent-id").value || null;
+    const type = document.getElementById("of-type").value;
+    const allowed = parentId ? allowedChildTypes(findNode(parentId).type) : ["company"];
+    if (!allowed.includes(type)) {
+      document.getElementById("err-org-type").classList.add("show");
+      toast("不允许在该上级下创建此类型", "error");
+      return;
+    }
+    const node = { id: nextOrgId(type), name, type };
+    if (type !== "position") node.children = [];
+    if (!parentId) {
+      orgTree.push(node);
+    } else {
+      const parent = findNode(parentId);
+      if (!parent.children) parent.children = [];
+      parent.children.push(node);
+      state.expanded.add(parentId);
+    }
+    persistOrgTree();
+    state.selectedOrgId = node.id;
+    closeModal("modal-org");
+    toast("已新增「" + name + "」（" + TYPE_LABEL[type] + "）");
+    renderMainTree();
+    renderUsers();
   });
 
   document.getElementById("btn-expand-all").addEventListener("click", () => {
