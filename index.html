@@ -733,6 +733,18 @@ table.data tr:hover td { background: #fafafa; }
   flex-shrink: 0;
 }
 
+
+.org-picker-search {
+  width: 100%;
+  margin-bottom: 8px;
+}
+.org-picker-search .input { width: 100%; }
+.org-picker-empty {
+  display: none;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
 /* Org picker inside modal */
 .org-picker {
   border: 1px solid var(--border-strong);
@@ -1052,7 +1064,7 @@ table.data tr:hover td { background: #fafafa; }
 
 .hint { margin-top: 4px; }
 
-  </style>
+</style>
 </head>
 <body>
   <div class="app">
@@ -1376,7 +1388,12 @@ table.data tr:hover td { background: #fafafa; }
           <div class="form-row">
             <label>所属组织<span class="req">*</span></label>
             <div class="form-hint">须选到岗位节点；公司 / 部门不可提交</div>
+            <div class="search-box org-picker-search">
+              <span class="search-ico">⌕</span>
+              <input class="input" id="uf-org-search" placeholder="搜索组织节点" autocomplete="off" />
+            </div>
             <div class="org-picker" id="uf-org-picker"></div>
+            <div class="org-picker-empty" id="uf-org-empty">无匹配的组织节点</div>
             <div class="picked-path" id="uf-picked-path"></div>
             <div class="field-error" id="err-org">请选择岗位作为所属组织</div>
           </div>
@@ -1594,7 +1611,7 @@ table.data tr:hover td { background: #fafafa; }
       ],
     },
     {
-      key: "user", name: "用户管理",
+      key: "org_user", name: "组织与用户管理",
       perms: [
         { key: "user.view", label: "查看用户" },
         { key: "user.create", label: "新建用户" },
@@ -1602,6 +1619,11 @@ table.data tr:hover td { background: #fafafa; }
         { key: "user.delete", label: "删除用户" },
         { key: "user.reset_pwd", label: "重置密码" },
         { key: "user.batch_role", label: "批量赋角" },
+        { key: "org.view", label: "查看组织树" },
+        { key: "org.create", label: "新增组织节点" },
+        { key: "org.edit", label: "编辑组织节点" },
+        { key: "org.delete", label: "删除组织节点" },
+        { key: "org.disable", label: "停用组织节点" },
       ],
     },
     {
@@ -1612,13 +1634,6 @@ table.data tr:hover td { background: #fafafa; }
         { key: "role.edit", label: "编辑角色" },
         { key: "role.delete", label: "删除角色" },
         { key: "role.assign_perm", label: "配置功能权限" },
-      ],
-    },
-    {
-      key: "org", name: "组织架构",
-      perms: [
-        { key: "org.view", label: "查看组织树" },
-        { key: "org.manage", label: "维护组织/岗位" },
       ],
     },
     {
@@ -1739,6 +1754,7 @@ table.data tr:hover td { background: #fafafa; }
     selectedOrgId: null,
     expanded: new Set(["c1", "s1", "d1", "d1-1", "s2"]),
     userSearch: "",
+    orgPickerQuery: "",
     selectedRoleId: "r-admin",
     kbTab: "perm",
     kbMemberSearch: "",
@@ -1989,15 +2005,45 @@ table.data tr:hover td { background: #fafafa; }
   });
 
   // ——— Render org tree ———
+
+  function filterOrgTree(nodes, q) {
+    if (!q) return nodes;
+    const needle = q.trim().toLowerCase();
+    if (!needle) return nodes;
+    const out = [];
+    for (const n of nodes) {
+      const selfMatch = (n.name || "").toLowerCase().includes(needle);
+      const childFiltered = n.children ? filterOrgTree(n.children, needle) : [];
+      if (selfMatch || childFiltered.length) {
+        const copy = Object.assign({}, n);
+        if (n.children) {
+          // 自身命中：保留全部子节点；仅后代命中：只保留匹配分支
+          copy.children = selfMatch ? n.children : childFiltered;
+        }
+        out.push(copy);
+      }
+    }
+    return out;
+  }
+
+  function expandFiltered(nodes) {
+    walk(nodes, (n) => {
+      if (n.children && n.children.length) state.expanded.add(n.id);
+    });
+  }
+
   function renderOrgTree(container, opts = {}) {
     const {
       picker = false,
       selectedId = state.selectedOrgId,
       onSelect,
       onlyPickPosition = false,
+      filterQuery = "",
     } = opts;
 
     container.innerHTML = "";
+    const rootNodes = filterQuery ? filterOrgTree(orgTree, filterQuery) : orgTree;
+    if (filterQuery) expandFiltered(rootNodes);
 
     function renderNodes(nodes, depth) {
       const frag = document.createDocumentFragment();
@@ -2099,7 +2145,7 @@ table.data tr:hover td { background: #fafafa; }
       return frag;
     }
 
-    container.appendChild(renderNodes(orgTree, 0));
+    container.appendChild(renderNodes(rootNodes, 0));
   }
 
   function renderMainTree() {
@@ -2436,10 +2482,12 @@ table.data tr:hover td { background: #fafafa; }
 
   function renderOrgPicker() {
     const el = document.getElementById("uf-org-picker");
+    const empty = document.getElementById("uf-org-empty");
     renderOrgTree(el, {
       picker: true,
       onlyPickPosition: true,
       selectedId: state.pickedPositionId,
+      filterQuery: state.orgPickerQuery || "",
       onSelect: (n) => {
         state.pickedPositionId = n.id;
         const pathEl = document.getElementById("uf-picked-path");
@@ -2449,6 +2497,11 @@ table.data tr:hover td { background: #fafafa; }
         renderOrgPicker();
       },
     });
+    if (empty) {
+      const q = (state.orgPickerQuery || "").trim();
+      const hasNodes = el.querySelector(".tree-node");
+      empty.style.display = q && !hasNodes ? "block" : "none";
+    }
   }
 
   function openUserForm(userId) {
@@ -2492,6 +2545,9 @@ table.data tr:hover td { background: #fafafa; }
     walk(orgTree, (n) => {
       if (n.children && n.children.length) state.expanded.add(n.id);
     });
+    state.orgPickerQuery = "";
+    const orgSearch = document.getElementById("uf-org-search");
+    if (orgSearch) orgSearch.value = "";
     renderOrgPicker();
     openModal("modal-user");
   }
@@ -2919,6 +2975,6 @@ table.data tr:hover td { background: #fafafa; }
 })();
 
 
-  </script>
+</script>
 </body>
 </html>
