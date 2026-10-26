@@ -869,6 +869,17 @@ table.data tr:hover td { background: #fafafa; }
 }
 .legend span { display: inline-flex; align-items: center; gap: 4px; }
 
+.org-rule-note {
+  margin: 0 8px 10px;
+  padding: 8px 10px;
+  border: 1px solid #d6e4ff;
+  border-radius: 6px;
+  background: #f0f5ff;
+  color: #1d39c4;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .actions-cell { white-space: nowrap; }
 
 
@@ -1052,6 +1063,56 @@ table.data tr:hover td { background: #fafafa; }
 .kb-role-select { max-width: 130px; }
 
 
+#kb-org-picker {
+  max-height: 280px;
+}
+.kb-org-search { width: 100%; margin: 8px 0; }
+.kb-batch-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(220px, 0.85fr);
+  gap: 20px;
+}
+.kb-batch-summary {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fafafa;
+}
+.kb-batch-summary-title { font-weight: 600; margin-bottom: 8px; }
+.kb-batch-scope { color: var(--primary); font-weight: 500; margin-bottom: 8px; }
+.kb-batch-preview { color: var(--text-secondary); font-size: 12px; line-height: 1.6; min-height: 72px; margin-bottom: 14px; }
+
+.kb-member-modal { width: 820px; }
+.modal-subtitle { margin-top: 3px; color: var(--text-tertiary); font-size: 12px; }
+.kb-member-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.kb-member-query-box { flex: 1; }
+.kb-selected-count { color: var(--primary); font-size: 12px; white-space: nowrap; }
+.kb-member-picker-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; }
+.kb-member-org-filter, .kb-member-results { min-width: 0; }
+.picker-title { font-weight: 600; margin-bottom: 8px; }
+.kb-clear-org { border: none; background: transparent; color: var(--primary); padding: 0 0 6px; cursor: pointer; font-size: 12px; }
+.kb-member-result-head { display: flex; justify-content: space-between; align-items: center; min-height: 28px; margin-bottom: 4px; }
+.kb-member-list { border: 1px solid var(--border); border-radius: 6px; max-height: 300px; overflow: auto; }
+.kb-member-option { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.kb-member-option:last-child { border-bottom: none; }
+.kb-member-option:hover { background: #f5faff; }
+.kb-member-option .member-main { flex: 1; min-width: 0; }
+.kb-member-option .member-name { color: var(--text); }
+.kb-member-option .member-meta { color: var(--text-tertiary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kb-member-option .member-org { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+.kb-member-empty { padding: 24px 0; }
+.kb-member-permission-row { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.kb-member-permission-row label { font-weight: 500; white-space: nowrap; }
+.kb-member-permission-row .input { width: 130px; }
+
+.batch-member-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.batch-member-list { border:1px solid var(--border); border-radius:6px; max-height:260px; overflow:auto; }
+.batch-member-option { display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); cursor:pointer; }
+.batch-member-option:last-child { border-bottom:none; }
+.batch-member-option:hover { background:#f5faff; }
+.batch-member-option .member-main { flex:1; min-width:0; }
+.batch-member-option .member-meta { display:block; color:var(--text-tertiary); font-size:12px; }
+
 .ctx-item.ctx-danger { color: #cf1322; }
 .ctx-item.ctx-danger:hover { background: #fff1f0; color: #a8071a; }
 
@@ -1070,9 +1131,6 @@ table.data tr:hover td { background: #fafafa; }
       <nav class="nav">
         <button class="nav-item active" data-page="org-users" type="button">
           <span class="icon">▣</span> 组织与用户
-        </button>
-        <button class="nav-item" data-page="roles" type="button">
-          <span class="icon">◎</span> 角色管理
         </button>
         <div class="nav-section">资源示例</div>
         <button class="nav-item" data-page="kb-perm" type="button">
@@ -1115,6 +1173,7 @@ table.data tr:hover td { background: #fafafa; }
                 <span>📁 部门</span>
                 <span>👤 岗位</span>
               </div>
+              <div class="org-rule-note">组织树只用于查询和筛选用户；部门/岗位批量赋角或回收角色需在成员列表中勾选用户，不形成组织继承。</div>
               <div class="panel-body">
                 <div class="tree" id="org-tree"></div>
               </div>
@@ -1159,41 +1218,6 @@ table.data tr:hover td { background: #fafafa; }
                   <div>当前筛选下暂无用户</div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Page: 角色管理 -->
-        <section class="page" id="page-roles">
-          <div class="split role-split">
-            <div class="split-left panel">
-              <div class="panel-header">
-                <h2>角色</h2>
-                <button class="btn btn-primary btn-sm" type="button" id="btn-create-role">+ 新建</button>
-              </div>
-              <div class="panel-body">
-                <div class="role-list" id="role-list"></div>
-              </div>
-            </div>
-            <div class="split-right panel perm-panel">
-              <div class="perm-toolbar">
-                <div>
-                  <div style="font-weight:600;font-size:15px" id="role-detail-name">—</div>
-                  <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px" id="role-detail-desc"></div>
-                </div>
-                <div class="btn-group">
-                  <button class="btn btn-sm" type="button" id="btn-edit-role">编辑</button>
-                  <button class="btn btn-sm btn-danger" type="button" id="btn-delete-role">删除</button>
-                  <button class="btn btn-sm btn-primary" type="button" id="btn-save-perms">保存权限</button>
-                </div>
-              </div>
-              <div class="locked-banner" id="locked-banner">
-                系统预置角色不可编辑或删除。功能权限只读展示。
-              </div>
-              <div class="role-func-hint" id="role-func-hint">
-                角色只配置功能权限（入口/按钮）。Agent / 知识库等<strong>数据权限</strong>请在资源详情的「公开性设置」中由所有者配置。
-              </div>
-              <div class="perm-modules" id="perm-modules"></div>
             </div>
           </div>
         </section>
@@ -1263,7 +1287,8 @@ table.data tr:hover td { background: #fafafa; }
                           <span class="search-ico">⌕</span>
                           <input class="input" id="kb-member-search" placeholder="搜索用户名/姓名" />
                         </div>
-                        <button class="btn btn-primary" type="button" id="btn-add-kb-member">添加成员</button>
+                        <button class="btn" type="button" id="btn-add-kb-member-single">单个添加</button>
+                        <button class="btn btn-primary" type="button" id="btn-add-kb-member-org">按组织筛选添加</button>
                       </div>
                     </div>
                     <div class="table-wrap">
@@ -1297,8 +1322,7 @@ table.data tr:hover td { background: #fafafa; }
     <button class="ctx-item ctx-danger" type="button" data-action="org-delete">删除</button>
     <div class="ctx-divider"></div>
     <button class="ctx-item" type="button" data-action="batch-grant">批量赋予角色</button>
-    <div class="ctx-divider"></div>
-    <button class="ctx-item" type="button" data-action="filter-here" disabled>已含下级筛选（选中即生效）</button>
+    <button class="ctx-item" type="button" data-action="batch-revoke">批量回收角色</button>
   </div>
 
 
@@ -1397,51 +1421,36 @@ table.data tr:hover td { background: #fafafa; }
     </div>
   </div>
 
-  <!-- Modal: Role form -->
-  <div class="modal-mask" id="modal-role">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="role-modal-title">新建角色</h3>
-        <button class="btn-icon" type="button" data-close="modal-role">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-row">
-          <label>角色名称<span class="req">*</span></label>
-          <input class="input" id="rf-name" maxlength="32" placeholder="例如：运营专员" />
-          <div class="field-error" id="err-rname">请填写角色名称</div>
-        </div>
-        <div class="form-row">
-          <label>描述</label>
-          <textarea class="textarea" id="rf-desc" placeholder="角色用途说明"></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-role">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-save-role-meta">保存</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Batch grant -->
+  <!-- Modal: Batch role operation -->
   <div class="modal-mask" id="modal-batch">
-    <div class="modal">
+    <div class="modal wide">
       <div class="modal-header">
-        <h3>批量赋予角色</h3>
+        <div>
+          <h3 id="batch-modal-title">批量赋予角色</h3>
+          <div class="modal-subtitle">先从组织节点查询成员，再勾选用户执行角色操作</div>
+        </div>
         <button class="btn-icon" type="button" data-close="modal-batch">✕</button>
       </div>
       <div class="modal-body">
-        <p class="confirm-text" style="margin-bottom:14px" id="batch-scope-text"></p>
-        <div class="form-hint" style="margin-bottom:12px">一次性快捷方式：仅影响当前节点（含下级）下的现有成员，之后新进人员不会自动获得该角色。</div>
-        <div class="form-row">
+        <p class="confirm-text" style="margin-bottom:12px" id="batch-scope-text"></p>
+        <div class="form-hint" style="margin-bottom:12px">默认不勾选用户；本次操作只作用于你勾选的用户，不会形成组织继承。</div>
+        <div class="batch-member-toolbar">
+          <label class="checkbox"><input type="checkbox" id="batch-select-all" /> 全选当前成员</label>
+          <span class="form-hint" id="batch-selected-count">已选 0 人</span>
+        </div>
+        <div class="batch-member-list" id="batch-members"></div>
+        <div class="empty-state" id="batch-members-empty" style="display:none">当前组织范围下没有用户</div>
+        <div class="form-row" style="margin-top:14px">
           <label>选择角色<span class="req">*</span></label>
           <div class="checkbox-group" id="batch-roles"></div>
           <div class="field-error" id="err-batch-roles">请至少选择一个角色</div>
         </div>
-        <div id="batch-preview" style="font-size:12px;color:var(--text-secondary)"></div>
+        <div class="field-error" id="err-batch-members">请至少选择一名用户</div>
       </div>
       <div class="modal-footer">
         <button class="btn" type="button" data-close="modal-batch">取消</button>
         <button class="btn btn-primary" type="button" id="btn-do-batch">确认赋予</button>
+        <button class="btn btn-danger-solid" type="button" id="btn-do-batch-revoke">确认回收</button>
       </div>
     </div>
   </div>
@@ -1464,35 +1473,91 @@ table.data tr:hover td { background: #fafafa; }
   </div>
 
 
-  <!-- Modal: Add KB member -->
-  <div class="modal-mask" id="modal-kb-member">
-    <div class="modal" style="width:440px">
+  <!-- Modal: Single KB member permission picker -->
+  <div class="modal-mask" id="modal-kb-single-member">
+    <div class="modal">
       <div class="modal-header">
-        <h3>添加成员</h3>
-        <button class="btn-icon" type="button" data-close="modal-kb-member">✕</button>
+        <div>
+          <h3>单个添加成员权限</h3>
+          <div class="modal-subtitle">搜索并选择一名用户，再写入当前知识库成员权限</div>
+        </div>
+        <button class="btn-icon" type="button" data-close="modal-kb-single-member">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-row">
-          <label>账号<span class="req">*</span></label>
-          <div class="search-box" style="width:100%">
+          <label>搜索用户<span class="req">*</span></label>
+          <div class="search-box">
             <span class="search-ico">⌕</span>
-            <input class="input" id="kb-add-account" placeholder="搜索账号 / 姓名 / 邮箱" list="kb-user-datalist" />
-            <datalist id="kb-user-datalist"></datalist>
+            <input class="input" id="kb-single-member-query" placeholder="搜索用户名 / 账号 / 邮箱" />
           </div>
-          <div class="field-error" id="err-kb-account">请选择要添加的账号</div>
         </div>
         <div class="form-row">
-          <label>角色<span class="req">*</span></label>
-          <select class="input" id="kb-add-role">
+          <label>用户列表</label>
+          <div class="kb-member-list" id="kb-single-member-picker"></div>
+          <div class="empty-state kb-member-empty" id="kb-single-member-empty" style="display:none">没有匹配的可添加用户</div>
+          <div class="field-error" id="err-kb-single-member">请选择一名用户</div>
+        </div>
+        <div class="kb-member-permission-row">
+          <label>资源角色<span class="req">*</span></label>
+          <select class="input" id="kb-single-member-role">
             <option value="editor">编辑者</option>
             <option value="viewer">使用者</option>
           </select>
-          <div class="form-hint">所有者由创建者固定担任，添加成员时仅可选编辑者或使用者。</div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-kb-member">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-confirm-kb-member">确定</button>
+        <button class="btn" type="button" data-close="modal-kb-single-member">取消</button>
+        <button class="btn btn-primary" type="button" id="btn-confirm-kb-single-member">确认添加</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="modal-kb-members">
+    <div class="modal wide kb-member-modal">
+      <div class="modal-header">
+        <div>
+          <h3>按组织筛选添加成员权限</h3>
+          <div class="modal-subtitle">组织节点仅用于查询用户；请在成员列表中手动勾选后逐个写入资源权限</div>
+        </div>
+        <button class="btn-icon" type="button" data-close="modal-kb-members">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="kb-member-toolbar">
+          <span class="kb-selected-count" id="kb-selected-count">已选 0 人</span>
+        </div>
+        <div class="kb-member-picker-layout">
+          <div class="kb-member-org-filter">
+            <div class="picker-title">组织筛选</div>
+            <div class="search-box kb-org-search">
+              <span class="search-ico">⌕</span>
+              <input class="input" id="kb-org-search" placeholder="搜索公司 / 子公司 / 部门 / 岗位" />
+            </div>
+            <button class="kb-clear-org" type="button" id="kb-clear-org">全部组织</button>
+            <div class="org-picker kb-org-picker" id="kb-org-picker"></div>
+            <div class="form-hint">组织节点只用于筛选成员，选择后仍需在右侧成员列表中勾选。</div>
+          </div>
+          <div class="kb-member-results">
+            <div class="picker-title">成员列表</div>
+            <div class="kb-member-result-head">
+              <label class="checkbox"><input type="checkbox" id="kb-select-all" /> 全选当前结果</label>
+              <span id="kb-result-count" class="form-hint">0 人</span>
+            </div>
+            <div class="kb-member-list" id="kb-member-picker"></div>
+            <div class="empty-state kb-member-empty" id="kb-member-picker-empty" style="display:none">当前筛选下没有可添加用户</div>
+          </div>
+        </div>
+        <div class="kb-member-permission-row">
+          <label>资源角色<span class="req">*</span></label>
+          <select class="input" id="kb-member-role">
+            <option value="editor">编辑者</option>
+            <option value="viewer">使用者</option>
+          </select>
+          <span class="form-hint">确认后按用户逐个写入知识库成员权限；已有成员不会重复添加。</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" type="button" data-close="modal-kb-members">取消</button>
+        <button class="btn btn-primary" type="button" id="btn-confirm-kb-members">确认添加</button>
       </div>
     </div>
   </div>
@@ -1772,6 +1837,12 @@ table.data tr:hover td { background: #fafafa; }
     { account: "lina", name: "李娜", email: "lina@xinghe.com" },
     { account: "wangqiang", name: "王强", email: "wangqiang@xinghe.com" },
     { account: "zhaomin", name: "赵敏", email: "zhaomin@xinghe.com" },
+    { account: "chenchen", name: "陈晨", email: "chenchen@xinghe.com" },
+    { account: "liuyang", name: "刘洋", email: "liuyang@xinghe.com" },
+    { account: "zhoufang", name: "周芳", email: "zhoufang@xinghe.com" },
+    { account: "wulei", name: "吴磊", email: "wulei@xinghe.com" },
+    { account: "zhengshuang", name: "郑爽", email: "zhengshuang@xinghe.com" },
+    { account: "sunhao", name: "孙浩", email: "sunhao@xinghe.com" },
     { account: "Rio", name: "Rio", email: "1455395994@qq.com" },
   ];
 
@@ -1799,6 +1870,11 @@ table.data tr:hover td { background: #fafafa; }
     selectedRoleId: "r-admin",
     kbTab: "perm",
     kbMemberSearch: "",
+    kbSingleMemberQuery: "",
+    kbSingleMemberAccount: null,
+    kbOrgSearch: "",
+    kbOrgId: null,
+    kbSelectedAccounts: new Set(),
     editingUserId: null,
     editingRoleId: null,
     pickedPositionId: null,
@@ -2029,7 +2105,6 @@ table.data tr:hover td { background: #fafafa; }
   // ——— Nav ———
   const PAGE_TITLES = {
     "org-users": "组织与用户",
-    roles: "角色管理",
     "kb-perm": "知识库权限示例",
   };
 
@@ -2040,7 +2115,6 @@ table.data tr:hover td { background: #fafafa; }
       document.querySelectorAll(".nav-item").forEach((b) => b.classList.toggle("active", b === btn));
       document.querySelectorAll(".page").forEach((p) => p.classList.toggle("active", p.id === "page-" + page));
       document.getElementById("crumb").textContent = PAGE_TITLES[page] || page;
-      if (page === "roles") renderRoles();
       if (page === "kb-perm") renderKbPerm();
     });
   });
@@ -2200,6 +2274,7 @@ table.data tr:hover td { background: #fafafa; }
     const batchOk = node.type === "dept" || node.type === "position";
     ctxMenu.querySelector('[data-action="org-add"]').style.display = canAdd ? "" : "none";
     ctxMenu.querySelector('[data-action="batch-grant"]').style.display = batchOk ? "" : "none";
+    ctxMenu.querySelector('[data-action="batch-revoke"]').style.display = batchOk ? "" : "none";
     ctxMenu.classList.add("show");
     const x = Math.min(e.clientX, window.innerWidth - 200);
     const y = Math.min(e.clientY, window.innerHeight - 220);
@@ -2216,7 +2291,12 @@ table.data tr:hover td { background: #fafafa; }
   ctxMenu.querySelector('[data-action="batch-grant"]').addEventListener("click", () => {
     const id = state.ctxNodeId;
     hideCtxMenu();
-    if (id) openBatchGrant(id);
+    if (id) openBatchRoleOperation(id, "grant");
+  });
+  ctxMenu.querySelector('[data-action="batch-revoke"]').addEventListener("click", () => {
+    const id = state.ctxNodeId;
+    hideCtxMenu();
+    if (id) openBatchRoleOperation(id, "revoke");
   });
   ctxMenu.querySelector('[data-action="org-add"]').addEventListener("click", () => {
     const id = state.ctxNodeId;
@@ -2632,213 +2712,119 @@ table.data tr:hover td { background: #fafafa; }
     renderMainTree();
   });
 
-  // ——— Batch grant ———
-  function openBatchGrant(nodeId) {
+  // ——— Batch role operations ———
+  function batchMembersForNode() {
+    return state.batchNodeId ? usersUnderOrg(state.batchNodeId) : [];
+  }
+
+  function renderBatchMembers() {
+    const box = document.getElementById("batch-members");
+    const empty = document.getElementById("batch-members-empty");
+    const members = batchMembersForNode();
+    box.innerHTML = members.map((user) => `
+      <label class="batch-member-option">
+        <input type="checkbox" data-batch-user="${escapeHtml(user.id)}" />
+        <span class="member-main">${escapeHtml(user.name)}<span class="member-meta">${escapeHtml(user.account)} · ${escapeHtml(pathLabel(user.positionId))}</span></span>
+      </label>`).join("");
+    empty.style.display = members.length ? "none" : "block";
+    document.getElementById("batch-select-all").checked = false;
+    document.getElementById("batch-select-all").indeterminate = false;
+    document.getElementById("batch-selected-count").textContent = "已选 0 人";
+    box.querySelectorAll("[data-batch-user]").forEach((checkbox) => {
+      checkbox.addEventListener("change", updateBatchSelectionState);
+    });
+  }
+
+  function updateBatchSelectionState() {
+    const boxes = Array.from(document.querySelectorAll("#batch-members [data-batch-user]"));
+    const checked = boxes.filter((box) => box.checked).length;
+    const selectAll = document.getElementById("batch-select-all");
+    selectAll.checked = boxes.length > 0 && checked === boxes.length;
+    selectAll.indeterminate = checked > 0 && checked < boxes.length;
+    document.getElementById("batch-selected-count").textContent = `已选 ${checked} 人`;
+  }
+
+  function openBatchRoleOperation(nodeId, operation) {
     const node = findNode(nodeId);
     if (!node || (node.type !== "dept" && node.type !== "position")) {
-      toast("仅支持对部门或岗位批量赋角", "error");
+      toast("仅支持对部门或岗位批量操作角色", "error");
       return;
     }
     state.batchNodeId = nodeId;
-    const members = usersUnderOrg(nodeId);
-    document.getElementById("batch-scope-text").innerHTML =
-      `将为 <strong>${escapeHtml(node.name)}</strong>（${node.type === "dept" ? "部门" : "岗位"}，含下级）下的 ` +
-      `<strong>${members.length}</strong> 名现有成员一次性赋予所选角色。`;
-    document.getElementById("batch-preview").textContent = members.length
-      ? "成员：" + members.map((u) => u.name).join("、")
-      : "当前范围下没有用户。";
+    document.getElementById("batch-modal-title").textContent = operation === "grant" ? "批量赋予角色" : "批量回收角色";
+    document.getElementById("batch-scope-text").innerHTML = `组织范围：<strong>${escapeHtml(node.name)}</strong>（含下级）。请在成员列表中勾选用户。`;
+    document.getElementById("btn-do-batch").style.display = operation === "grant" ? "" : "none";
+    document.getElementById("btn-do-batch-revoke").style.display = operation === "revoke" ? "" : "none";
+    state.batchOperation = operation;
+    renderBatchMembers();
     fillRoleCheckboxes("batch-roles", []);
     document.getElementById("err-batch-roles").classList.remove("show");
+    document.getElementById("err-batch-members").classList.remove("show");
     openModal("modal-batch");
   }
 
+  document.getElementById("batch-select-all").addEventListener("change", (event) => {
+    document.querySelectorAll("#batch-members [data-batch-user]").forEach((checkbox) => {
+      checkbox.checked = event.target.checked;
+    });
+    updateBatchSelectionState();
+  });
+
+  function selectedBatchUsers() {
+    const ids = new Set(Array.from(document.querySelectorAll("#batch-members [data-batch-user]:checked")).map((checkbox) => checkbox.dataset.batchUser));
+    return users.filter((user) => ids.has(user.id));
+  }
+
+  function selectedBatchRoles() {
+    return Array.from(document.querySelectorAll("#batch-roles input:checked")).map((input) => input.value);
+  }
+
+  function validateBatchOperation() {
+    const roleIds = selectedBatchRoles();
+    const members = selectedBatchUsers();
+    document.getElementById("err-batch-roles").classList.toggle("show", !roleIds.length);
+    document.getElementById("err-batch-members").classList.toggle("show", !members.length);
+    return { roleIds, members };
+  }
+
   document.getElementById("btn-do-batch").addEventListener("click", () => {
-    const roleIds = Array.from(document.querySelectorAll("#batch-roles input:checked")).map((i) => i.value);
-    if (!roleIds.length) {
-      document.getElementById("err-batch-roles").classList.add("show");
-      return;
-    }
-    const members = usersUnderOrg(state.batchNodeId);
+    const { roleIds, members } = validateBatchOperation();
+    if (!roleIds.length || !members.length) return;
     let changed = 0;
-    for (const u of members) {
-      const before = u.roleIds.slice();
-      const set = new Set(u.roleIds);
-      roleIds.forEach((r) => set.add(r));
-      u.roleIds = Array.from(set);
-      if (u.roleIds.length !== before.length || u.roleIds.some((r, i) => r !== before[i])) changed++;
-    }
-    const node = findNode(state.batchNodeId);
+    members.forEach((user) => {
+      const before = user.roleIds.slice();
+      user.roleIds = Array.from(new Set([...user.roleIds, ...roleIds]));
+      if (user.roleIds.length !== before.length) changed++;
+    });
     closeModal("modal-batch");
-    toast(`已为「${node.name}」下 ${changed} 人赋予角色（一次性，不含后续新人）`);
+    toast(`已为 ${changed} 名已选用户赋予角色`);
     renderUsers();
   });
 
-  // ——— Roles ———
-  function renderRoles() {
-    const list = document.getElementById("role-list");
-    list.innerHTML = "";
-    for (const r of roles) {
-      const item = document.createElement("div");
-      item.className = "role-item" + (state.selectedRoleId === r.id ? " active" : "");
-      item.innerHTML = `
-        <div style="flex:1;min-width:0">
-          <div class="role-name">${escapeHtml(r.name)}${r.preset ? '<span class="preset-tag">预置</span>' : ""}</div>
-          <div class="role-desc">${escapeHtml(r.desc || "")}</div>
-        </div>`;
-      item.addEventListener("click", () => {
-        state.selectedRoleId = r.id;
-        renderRoles();
-      });
-      list.appendChild(item);
-    }
-    renderRoleDetail();
-  }
-
-  function renderRoleDetail() {
-    const role = roles.find((r) => r.id === state.selectedRoleId);
-    if (!role) return;
-
-    document.getElementById("role-detail-name").textContent = role.name;
-    document.getElementById("role-detail-desc").textContent = role.desc || "";
-
-    const locked = !!role.preset;
-    document.getElementById("locked-banner").classList.toggle("show", locked);
-    document.getElementById("btn-edit-role").disabled = locked;
-    document.getElementById("btn-delete-role").disabled = locked;
-    document.getElementById("btn-save-perms").disabled = locked;
-    document.getElementById("btn-edit-role").title = locked ? "预置角色不可编辑" : "";
-    document.getElementById("btn-delete-role").title = locked ? "预置角色不可删除" : "";
-
-    const wrap = document.getElementById("perm-modules");
-    wrap.innerHTML = "";
-    wrap.classList.toggle("perm-readonly", locked);
-
-    for (const mod of permModules) {
-      const box = document.createElement("div");
-      box.className = "perm-module";
-      const allChecked = mod.perms.every((p) => role.perms.includes(p.key));
-      const someChecked = mod.perms.some((p) => role.perms.includes(p.key));
-
-      box.innerHTML = `
-        <div class="perm-module-head">
-          <label class="checkbox">
-            <input type="checkbox" data-mod="${mod.key}" ${allChecked ? "checked" : ""} ${locked ? "disabled" : ""} />
-            ${escapeHtml(mod.name)}
-          </label>
-          <span style="font-size:12px;color:var(--text-tertiary);font-weight:400">
-            ${mod.perms.filter((p) => role.perms.includes(p.key)).length}/${mod.perms.length}
-          </span>
-        </div>
-        <div class="perm-module-body">
-          ${mod.perms
-            .map(
-              (p) => `
-            <label class="checkbox">
-              <input type="checkbox" data-perm="${p.key}" ${role.perms.includes(p.key) ? "checked" : ""} ${locked ? "disabled" : ""} />
-              ${escapeHtml(p.label)}
-            </label>`
-            )
-            .join("")}
-        </div>`;
-      wrap.appendChild(box);
-
-      const modCb = box.querySelector(`[data-mod="${mod.key}"]`);
-      if (!locked) {
-        modCb.indeterminate = someChecked && !allChecked;
-        modCb.addEventListener("change", () => {
-          const on = modCb.checked;
-          box.querySelectorAll("[data-perm]").forEach((cb) => {
-            cb.checked = on;
-          });
-        });
-      }
-    }
-  }
-
-  document.getElementById("btn-save-perms").addEventListener("click", () => {
-    const role = roles.find((r) => r.id === state.selectedRoleId);
-    if (!role || role.preset) return;
-    role.perms = Array.from(document.querySelectorAll("#perm-modules [data-perm]:checked")).map(
-      (i) => i.getAttribute("data-perm")
-    );
-    toast("已保存「" + role.name + "」功能权限");
-    renderRoleDetail();
-  });
-
-  document.getElementById("btn-create-role").addEventListener("click", () => {
-    state.editingRoleId = null;
-    document.getElementById("role-modal-title").textContent = "新建角色";
-    document.getElementById("rf-name").value = "";
-    document.getElementById("rf-desc").value = "";
-    document.getElementById("err-rname").classList.remove("show");
-    openModal("modal-role");
-  });
-
-  document.getElementById("btn-edit-role").addEventListener("click", () => {
-    const role = roles.find((r) => r.id === state.selectedRoleId);
-    if (!role || role.preset) return;
-    state.editingRoleId = role.id;
-    document.getElementById("role-modal-title").textContent = "编辑角色";
-    document.getElementById("rf-name").value = role.name;
-    document.getElementById("rf-desc").value = role.desc || "";
-    document.getElementById("err-rname").classList.remove("show");
-    openModal("modal-role");
-  });
-
-  document.getElementById("btn-save-role-meta").addEventListener("click", () => {
-    const name = document.getElementById("rf-name").value.trim();
-    const desc = document.getElementById("rf-desc").value.trim();
-    if (!name) {
-      document.getElementById("err-rname").classList.add("show");
+  document.getElementById("btn-do-batch-revoke").addEventListener("click", () => {
+    const { roleIds, members } = validateBatchOperation();
+    if (!roleIds.length || !members.length) return;
+    const invalidMembers = members.filter((user) => user.roleIds.filter((roleId) => !roleIds.includes(roleId)).length === 0);
+    if (invalidMembers.length) {
+      const names = invalidMembers.map((user) => escapeHtml(user.name)).join("、");
+      const message = `不能回收用户的全部角色，请先为 ${names} 保留至少一个角色`;
+      document.getElementById("err-batch-members").textContent = message;
+      document.getElementById("err-batch-members").classList.add("show");
+      toast(message, "error");
       return;
     }
-    if (state.editingRoleId) {
-      const role = roles.find((r) => r.id === state.editingRoleId);
-      role.name = name;
-      role.desc = desc;
-      toast("已更新角色");
-    } else {
-      const id = "r-" + Date.now();
-      roles.push({
-        id,
-        name,
-        desc: desc || "自定义角色",
-        preset: false,
-        perms: ["entry.web", "user.profile", "agent.use"],
-      });
-      state.selectedRoleId = id;
-      toast("已创建角色 " + name);
-    }
-    closeModal("modal-role");
-    renderRoles();
+    let changed = 0;
+    members.forEach((user) => {
+      const before = user.roleIds.slice();
+      user.roleIds = user.roleIds.filter((roleId) => !roleIds.includes(roleId));
+      if (user.roleIds.some((roleId, index) => roleId !== before[index]) || user.roleIds.length !== before.length) changed++;
+    });
+    closeModal("modal-batch");
+    toast(`已为 ${changed} 名已选用户回收角色`);
+    renderUsers();
   });
 
-  document.getElementById("btn-delete-role").addEventListener("click", () => {
-    const role = roles.find((r) => r.id === state.selectedRoleId);
-    if (!role || role.preset) return;
-    const affected = users.filter((u) => u.roleIds.includes(role.id));
-    confirmDialog(
-      "删除角色",
-      `确定删除角色 <strong>${escapeHtml(role.name)}</strong>？<br/>` +
-        `删除后，已授权该角色的 <strong>${affected.length}</strong> 名用户将回收此角色权限` +
-        (affected.length ? `（${affected.map((u) => escapeHtml(u.name)).join("、")}）` : "") +
-        "。",
-      () => {
-        users.forEach((u) => {
-          u.roleIds = u.roleIds.filter((id) => id !== role.id);
-          if (!u.roleIds.length) u.roleIds = ["r-user"];
-        });
-        roles = roles.filter((r) => r.id !== role.id);
-        state.selectedRoleId = roles[0] ? roles[0].id : null;
-        toast(`已删除角色「${role.name}」，并回收 ${affected.length} 名用户的该角色权限`);
-        renderRoles();
-        renderUsers();
-      }
-    );
-  });
-
-
-  // ——— Knowledge base instance ACL demo ———
+  // ——— Knowledge base instance ACL demo ———  // ——— Knowledge base instance ACL demo ———
   const KB_ROLE_LABEL = { owner: "所有者", editor: "编辑者", viewer: "使用者" };
 
   function setKbTab(tab) {
@@ -2930,11 +2916,166 @@ table.data tr:hover td { background: #fafafa; }
     });
   }
 
-  function fillKbDatalist() {
-    const dl = document.getElementById("kb-user-datalist");
-    dl.innerHTML = kbCandidateUsers
-      .map((u) => `<option value="${escapeHtml(u.account)}">${escapeHtml(u.name)} (${escapeHtml(u.email)})</option>`)
+  function kbUsersUnderOrg(orgId) {
+    const positionIds = new Set(positionsUnder(orgId));
+    return kbCandidateUsers.filter((candidate) => {
+      const user = users.find((item) => item.account.toLowerCase() === candidate.account.toLowerCase());
+      return user && positionIds.has(user.positionId);
+    });
+  }
+
+  function getKbSelectableUsers() {
+    if (!state.kbOrgId) return [];
+    const scopedUsers = kbUsersUnderOrg(state.kbOrgId);
+    const memberAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
+    return scopedUsers.filter((candidate) => {
+      if (memberAccounts.has(candidate.account.toLowerCase())) return false;
+      if (!query) return true;
+      return [candidate.account, candidate.name, candidate.email].some((value) => value.toLowerCase().includes(query));
+    });
+  }
+
+  function renderKbOrgPicker() {
+    renderOrgTree(document.getElementById("kb-org-picker"), {
+      picker: true,
+      selectedId: state.kbOrgId,
+      filterQuery: state.kbOrgSearch,
+      onSelect: (node) => {
+        state.kbOrgId = node.id;
+        renderKbOrgPicker();
+        renderKbMemberPicker();
+      },
+    });
+  }
+
+  function renderKbMemberPicker() {
+    const picker = document.getElementById("kb-member-picker");
+    const empty = document.getElementById("kb-member-picker-empty");
+    const resultCount = document.getElementById("kb-result-count");
+    const selectedCount = document.getElementById("kb-selected-count");
+    const selectAll = document.getElementById("kb-select-all");
+    const list = getKbSelectableUsers();
+    const listAccounts = new Set(list.map((candidate) => candidate.account.toLowerCase()));
+
+    state.kbSelectedAccounts.forEach((account) => {
+      if (!listAccounts.has(account.toLowerCase())) state.kbSelectedAccounts.delete(account);
+    });
+    picker.innerHTML = list
+      .map((candidate) => {
+        const user = users.find((item) => item.account.toLowerCase() === candidate.account.toLowerCase());
+        const path = user ? pathLabel(user.positionId) : "";
+        const checked = state.kbSelectedAccounts.has(candidate.account.toLowerCase());
+        return `<label class="kb-member-option">
+          <input type="checkbox" data-kb-account="${escapeHtml(candidate.account.toLowerCase())}" ${checked ? "checked" : ""} />
+          <span class="member-main"><span class="member-name">${escapeHtml(candidate.name)}</span><span class="member-meta">${escapeHtml(candidate.account)} · ${escapeHtml(candidate.email)}</span></span>
+          <span class="member-org">${escapeHtml(path)}</span>
+        </label>`;
+      })
       .join("");
+    empty.style.display = list.length ? "none" : "block";
+    resultCount.textContent = `${list.length} 人`;
+    selectedCount.textContent = `已选 ${state.kbSelectedAccounts.size} 人`;
+    selectAll.checked = list.length > 0 && list.every((candidate) => state.kbSelectedAccounts.has(candidate.account.toLowerCase()));
+    selectAll.indeterminate = list.some((candidate) => state.kbSelectedAccounts.has(candidate.account.toLowerCase())) && !selectAll.checked;
+
+    picker.querySelectorAll("[data-kb-account]").forEach((checkbox) => {
+      checkbox.addEventListener("change", () => {
+        const account = checkbox.dataset.kbAccount;
+        if (checkbox.checked) state.kbSelectedAccounts.add(account);
+        else state.kbSelectedAccounts.delete(account);
+        renderKbMemberPicker();
+      });
+    });
+  }
+
+  function renderKbSingleMemberPicker() {
+    const picker = document.getElementById("kb-single-member-picker");
+    const empty = document.getElementById("kb-single-member-empty");
+    const query = (state.kbSingleMemberQuery || "").trim().toLowerCase();
+    if (!query) return [];
+    const memberAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
+    const list = query
+      ? kbCandidateUsers.filter((candidate) => {
+          if (memberAccounts.has(candidate.account.toLowerCase())) return false;
+          return [candidate.account, candidate.name, candidate.email].some((value) => value.toLowerCase().includes(query));
+        })
+      : [];
+    picker.innerHTML = list
+      .map((candidate) => {
+        const user = users.find((item) => item.account.toLowerCase() === candidate.account.toLowerCase());
+        const checked = state.kbSingleMemberAccount === candidate.account.toLowerCase();
+        return `<label class="kb-member-option">
+          <input type="radio" name="kb-single-member" value="${escapeHtml(candidate.account.toLowerCase())}" ${checked ? "checked" : ""} />
+          <span class="member-main"><span class="member-name">${escapeHtml(candidate.name)}</span><span class="member-meta">${escapeHtml(candidate.account)} · ${escapeHtml(candidate.email)}</span></span>
+          <span class="member-org">${escapeHtml(user ? pathLabel(user.positionId) : "")}</span>
+        </label>`;
+      })
+      .join("");
+    empty.style.display = list.length ? "none" : "block";
+    picker.querySelectorAll('[name="kb-single-member"]').forEach((radio) => {
+      radio.addEventListener("change", () => {
+        state.kbSingleMemberAccount = radio.value;
+        document.getElementById("err-kb-single-member").classList.remove("show");
+      });
+    });
+  }
+
+  function openKbSingleMemberPicker() {
+    state.kbSingleMemberQuery = "";
+    state.kbSingleMemberAccount = null;
+    document.getElementById("kb-single-member-query").value = "";
+    document.getElementById("kb-single-member-role").value = "editor";
+    document.getElementById("err-kb-single-member").classList.remove("show");
+    renderKbSingleMemberPicker();
+    openModal("modal-kb-single-member");
+  }
+
+  function addSingleKbMember() {
+    const account = state.kbSingleMemberAccount;
+    const role = document.getElementById("kb-single-member-role").value;
+    if (!account) {
+      document.getElementById("err-kb-single-member").classList.add("show");
+      return;
+    }
+    const candidate = kbCandidateUsers.find((item) => item.account.toLowerCase() === account);
+    if (!candidate) return;
+    kbMembers.push({ account: candidate.account, name: candidate.name, role });
+    closeModal("modal-kb-single-member");
+    toast(`已按用户添加 1 名成员为${KB_ROLE_LABEL[role]}`);
+    renderKbMembers();
+  }
+
+  function openKbOrgMemberPicker() {
+    state.kbOrgSearch = "";
+    state.kbOrgId = null;
+    state.kbSelectedAccounts = new Set();
+    document.getElementById("kb-org-search").value = "";
+    document.getElementById("kb-member-role").value = "editor";
+    renderKbOrgPicker();
+    renderKbMemberPicker();
+    openModal("modal-kb-members");
+  }
+
+  function addSelectedKbMembers() {
+    const selectedAccounts = state.kbSelectedAccounts;
+    const role = document.getElementById("kb-member-role").value;
+    if (!selectedAccounts.size) {
+      toast("请至少选择一名用户", "error");
+      return;
+    }
+    const existingAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
+    let added = 0;
+    selectedAccounts.forEach((account) => {
+      const candidate = kbCandidateUsers.find((item) => item.account.toLowerCase() === account);
+      if (candidate && !existingAccounts.has(account)) {
+        kbMembers.push({ account: candidate.account, name: candidate.name, role });
+        existingAccounts.add(account);
+        added++;
+      }
+    });
+    closeModal("modal-kb-members");
+    toast(`已按用户添加 ${added} 名成员为${KB_ROLE_LABEL[role]}`);
+    renderKbMembers();
   }
 
   function renderKbPerm() {
@@ -2942,59 +3083,44 @@ table.data tr:hover td { background: #fafafa; }
       r.checked = r.value === kbVisibility;
     });
     setKbTab(state.kbTab || "perm");
-    fillKbDatalist();
     renderKbMembers();
   }
 
-  document.getElementById("btn-add-kb-member").addEventListener("click", () => {
-    document.getElementById("kb-add-account").value = "";
-    document.getElementById("kb-add-role").value = "editor";
-    document.getElementById("err-kb-account").classList.remove("show");
-    fillKbDatalist();
-    openModal("modal-kb-member");
+  document.getElementById("btn-add-kb-member-single").addEventListener("click", openKbSingleMemberPicker);
+  document.getElementById("btn-add-kb-member-org").addEventListener("click", openKbOrgMemberPicker);
+
+  document.getElementById("kb-single-member-query").addEventListener("input", (e) => {
+    state.kbSingleMemberQuery = e.target.value;
+    renderKbSingleMemberPicker();
   });
 
-  document.getElementById("btn-confirm-kb-member").addEventListener("click", () => {
-    const raw = document.getElementById("kb-add-account").value.trim();
-    const role = document.getElementById("kb-add-role").value;
-    if (!raw) {
-      document.getElementById("err-kb-account").classList.add("show");
-      return;
-    }
-    // Match by account, or "Name (email)" style
-    let hit = kbCandidateUsers.find((u) => u.account.toLowerCase() === raw.toLowerCase());
-    if (!hit) {
-      hit = kbCandidateUsers.find(
-        (u) =>
-          raw.toLowerCase().includes(u.account.toLowerCase()) ||
-          raw.toLowerCase().includes(u.email.toLowerCase()) ||
-          raw.toLowerCase().includes(u.name.toLowerCase())
-      );
-    }
-    if (!hit) {
-      document.getElementById("err-kb-account").textContent = "未找到该账号，请从候选中选择";
-      document.getElementById("err-kb-account").classList.add("show");
-      return;
-    }
-    if (kbMembers.some((m) => m.account === hit.account)) {
-      document.getElementById("err-kb-account").textContent = "该用户已是成员";
-      document.getElementById("err-kb-account").classList.add("show");
-      return;
-    }
-    if (role === "owner") {
-      toast("不可添加所有者", "error");
-      return;
-    }
-    kbMembers.push({ account: hit.account, name: hit.name, role });
-    closeModal("modal-kb-member");
-    toast(`已添加 ${hit.name} 为${KB_ROLE_LABEL[role]}`);
-    renderKbMembers();
+  document.getElementById("kb-org-search").addEventListener("input", (e) => {
+    state.kbOrgSearch = e.target.value.trim();
+    renderKbOrgPicker();
   });
+
+  document.getElementById("kb-clear-org").addEventListener("click", () => {
+    state.kbOrgId = null;
+    renderKbOrgPicker();
+    renderKbMemberPicker();
+  });
+
+  document.getElementById("kb-select-all").addEventListener("change", (e) => {
+    const list = getKbSelectableUsers();
+    list.forEach((candidate) => {
+      const account = candidate.account.toLowerCase();
+      if (e.target.checked) state.kbSelectedAccounts.add(account);
+      else state.kbSelectedAccounts.delete(account);
+    });
+    renderKbMemberPicker();
+  });
+
+  document.getElementById("btn-confirm-kb-single-member").addEventListener("click", addSingleKbMember);
+  document.getElementById("btn-confirm-kb-members").addEventListener("click", addSelectedKbMembers);
 
   // ——— Init ———
   renderMainTree();
   renderUsers();
-  renderRoles();
   renderKbPerm();
 })();
 
