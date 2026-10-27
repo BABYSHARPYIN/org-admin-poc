@@ -6,26 +6,27 @@
   <title>组织与权限管理 · POC</title>
   <style>
 :root {
-  --primary: #1677ff;
-  --primary-hover: #4096ff;
-  --primary-bg: #e6f4ff;
-  --danger: #ff4d4f;
-  --danger-hover: #ff7875;
-  --success: #52c41a;
-  --warning: #faad14;
-  --text: rgba(0, 0, 0, 0.88);
-  --text-secondary: rgba(0, 0, 0, 0.65);
-  --text-tertiary: rgba(0, 0, 0, 0.45);
-  --border: #f0f0f0;
-  --border-strong: #d9d9d9;
-  --bg: #f5f5f5;
+  --primary: #0f766e;
+  --primary-hover: #0d9488;
+  --primary-bg: #ccfbf1;
+  --accent: #b45309;
+  --danger: #b42318;
+  --danger-hover: #d92d20;
+  --success: #087443;
+  --warning: #b54708;
+  --text: #172b4d;
+  --text-secondary: #526581;
+  --text-tertiary: #667085;
+  --border: #dfe5ec;
+  --border-strong: #b8c2cf;
+  --bg: #f4f7fa;
   --bg-white: #ffffff;
-  --sidebar-bg: #001529;
+  --sidebar-bg: #172b4d;
   --sidebar-width: 200px;
   --header-h: 56px;
   --radius: 6px;
-  --shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
-  --shadow-lg: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 2px rgba(23,43,77,0.04), 0 4px 12px rgba(23,43,77,0.04);
+  --shadow-lg: 0 12px 28px rgba(23,43,77,0.16);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
 
@@ -1105,18 +1106,62 @@ table.data tr:hover td { background: #fafafa; }
 .kb-member-permission-row label { font-weight: 500; white-space: nowrap; }
 .kb-member-permission-row .input { width: 130px; }
 
-.batch-member-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-.batch-member-list { border:1px solid var(--border); border-radius:6px; max-height:260px; overflow:auto; }
-.batch-member-option { display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid var(--border); cursor:pointer; }
-.batch-member-option:last-child { border-bottom:none; }
-.batch-member-option:hover { background:#f5faff; }
-.batch-member-option .member-main { flex:1; min-width:0; }
-.batch-member-option .member-meta { display:block; color:var(--text-tertiary); font-size:12px; }
+.batch-action-menu { position: relative; }
+.batch-action-menu > .btn::after { content: "⌄"; margin-left: 4px; font-size: 12px; }
+.batch-action-menu.open > .btn { color: var(--primary); border-color: var(--primary); background: var(--primary-bg); }
+.batch-action-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; min-width: 160px; padding: 4px; background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-lg); display: none; }
+.batch-action-menu.open .batch-action-list { display: block; }
+.batch-action-item { display: block; width: 100%; padding: 9px 12px; border: 0; border-radius: 5px; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.batch-action-item:hover:not(:disabled) { background: var(--primary-bg); color: var(--primary); }
+.batch-action-item:disabled { color: var(--text-tertiary); opacity: .55; cursor: not-allowed; }
 
 .ctx-item.ctx-danger { color: #cf1322; }
 .ctx-item.ctx-danger:hover { background: #fff1f0; color: #a8071a; }
 
 .hint { margin-top: 4px; }
+
+  .page-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:14px; flex-shrink:0; }
+  .page-heading h1 { font-size:24px; line-height:1.25; letter-spacing:-0.02em; margin:2px 0 4px; }
+  .page-heading p { color:var(--text-secondary); font-size:13px; }
+  .eyebrow { color:var(--primary); font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+  .page-heading-meta { color:var(--text-tertiary); font-size:12px; white-space:nowrap; padding-top:6px; }
+  .status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--success); margin-right:5px; }
+  .panel-caption { display:block; color:var(--text-tertiary); font-size:12px; margin-top:2px; }
+  .results-heading { padding:16px 18px 12px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; border-bottom:1px solid var(--border); flex-shrink:0; }
+  .results-heading h2 { font-size:17px; margin-top:2px; }
+  .result-scope { color:var(--text-secondary); font-size:12px; margin-top:4px; }
+  .result-summary { color:var(--primary); font-size:13px; font-weight:600; white-space:nowrap; padding-top:12px; }
+  .filter-hint { padding:9px 18px; }
+  .filter-label { color:var(--text-tertiary); margin-right:7px; }
+  .toolbar { padding:10px 18px; }
+  .toolbar-note { color:var(--text-secondary); font-size:12px; }
+  .toolbar-note strong { color:var(--text); }
+  .selection-bar { display:flex; align-items:center; gap:14px; min-height:44px; padding:7px 18px; background:#f7fafc; border-bottom:1px solid var(--border); color:var(--text-secondary); font-size:12px; flex-shrink:0; }
+  .selection-bar .checkbox { color:var(--text); font-weight:500; }
+  .selection-bar .btn { margin-left:4px; }
+  .selection-note { color:var(--text-tertiary); margin-left:auto; }
+  .check-col { width:42px; text-align:center !important; }
+  .action-col { width:126px; }
+  .user-table th { background:#f8fafc; }
+  .user-table td { padding-top:9px; padding-bottom:9px; }
+  .user-table tr.selected td { background:#f0fdfa; }
+  .user-primary { font-weight:600; color:var(--text); }
+  .user-secondary { color:var(--text-tertiary); font-size:12px; margin-top:2px; }
+  .role-stack { max-width:170px; }
+  .state-tag { display:inline-flex; align-items:center; gap:5px; border-radius:12px; padding:3px 8px; font-size:12px; white-space:nowrap; }
+  .state-tag::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .state-active { color:var(--success); background:#ecfdf3; }
+  .state-warning { color:var(--warning); background:#fff7ed; }
+  .table-footer { display:flex; justify-content:space-between; padding:9px 18px; color:var(--text-tertiary); font-size:12px; border-top:1px solid var(--border); flex-shrink:0; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .legend-mark { width:8px; height:8px; border-radius:2px; display:inline-block; }
+  .legend-mark.company { background:#2563eb; } .legend-mark.subsidiary { background:#7c3aed; } .legend-mark.dept { background:#0f766e; } .legend-mark.position { background:#b45309; }
+  .migration-summary { display:flex; align-items:center; gap:8px; padding:12px; background:#f7fafc; border:1px solid var(--border); border-radius:7px; margin-bottom:20px; color:var(--text-secondary); }
+  .summary-number { color:var(--primary); font-size:20px; font-weight:700; }
+  .summary-divider { color:var(--border-strong); margin:0 4px; }
+  @media (max-width: 1050px) { .split-left { width:250px; } .selection-note { display:none; } .user-table th:nth-child(3), .user-table td:nth-child(3) { display:none; } }
+  @media (max-width: 760px) { .content { padding:12px; overflow:auto; } .page-heading { flex-direction:column; } .split { flex-direction:column; } .split-left { width:auto; min-height:280px; max-height:360px; } .split-right { min-height:560px; } .page-heading-meta { padding-top:0; } .selection-bar { flex-wrap:wrap; } .result-summary { display:none; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
 
 </style>
 </head>
@@ -1157,23 +1202,31 @@ table.data tr:hover td { background: #fafafa; }
       <div class="content">
         <!-- Page: 组织与用户 -->
         <section class="page active" id="page-org-users">
+          <div class="page-heading">
+            <div>
+              <div class="eyebrow">组织管理 / 用户范围</div>
+              <h1 id="organization-page-title">组织与用户</h1>
+              <p>组织节点只用于筛选用户，批量角色和转岗操作统一在用户列表中执行。</p>
+            </div>
+            <div class="page-heading-meta"><span class="status-dot"></span>本地演示数据 · 不会同步线上</div>
+          </div>
           <div class="split">
             <!-- Org tree -->
             <div class="split-left panel">
               <div class="panel-header">
-                <h2>组织架构</h2>
+                <div><h2>组织范围</h2><span class="panel-caption">组织只作为筛选条件，组织数据与用户权限解耦</span></div>
                 <div class="btn-group">
                   <button class="btn btn-primary btn-sm" type="button" id="btn-create-org" title="在选中节点下新增">+ 新增组织</button>
                   <button class="btn btn-sm" type="button" id="btn-expand-all" title="展开/折叠">展开全部</button>
                 </div>
               </div>
               <div class="legend">
-                <span>🏢 公司</span>
-                <span>🏢 子公司</span>
-                <span>📁 部门</span>
-                <span>👤 岗位</span>
+                <span><i class="legend-mark company"></i>公司</span>
+                <span><i class="legend-mark subsidiary"></i>子公司</span>
+                <span><i class="legend-mark dept"></i>部门</span>
+                <span><i class="legend-mark position"></i>岗位</span>
               </div>
-              <div class="org-rule-note">组织树只用于查询和筛选用户；部门/岗位批量赋角或回收角色需在成员列表中勾选用户，不形成组织继承。</div>
+              <div class="org-rule-note"><strong>筛选规则</strong><br />点击公司、子公司、部门或岗位后，仅筛选右侧用户；角色赋予、回收和转岗都在用户列表勾选用户后执行。</div>
               <div class="panel-body">
                 <div class="tree" id="org-tree"></div>
               </div>
@@ -1181,43 +1234,65 @@ table.data tr:hover td { background: #fafafa; }
 
             <!-- Users -->
             <div class="split-right panel">
-              <div class="panel-header">
-                <h2>用户列表</h2>
-                <div class="stats-bar" id="user-stats"></div>
+              <div class="results-heading">
+                <div>
+                  <div class="eyebrow">用户结果区</div>
+                  <h2>当前范围用户</h2>
+                  <div class="result-scope" id="result-scope">全部组织 · 可搜索全部用户</div>
+                </div>
+                <div class="result-summary" id="user-stats"></div>
               </div>
               <div class="filter-hint" id="filter-hint" style="display:none">
-                <span id="filter-hint-text"></span>
+                <span class="filter-label">当前筛选</span><span id="filter-hint-text"></span>
                 <button class="clear" type="button" id="clear-filter">清除筛选</button>
               </div>
               <div class="toolbar">
                 <div class="search-box">
-                  <span class="search-ico">⌕</span>
-                  <input class="input" id="user-search" placeholder="搜索用户名 / 账号 / 邮箱" />
+                  <span class="search-ico" aria-hidden="true">⌕</span>
+                  <input class="input" id="user-search" aria-label="搜索用户" placeholder="搜索姓名、账号、邮箱或手机" />
                 </div>
+                <div class="toolbar-note">共 <strong id="user-total-count">0</strong> 名用户</div>
                 <div class="btn-group" style="margin-left:auto">
                   <button class="btn btn-primary" type="button" id="btn-create-user">+ 新建用户</button>
                 </div>
               </div>
+              <div class="selection-bar" id="user-selection-bar" aria-live="polite">
+                <label class="checkbox"><input type="checkbox" id="user-select-all" /> 全选当前结果</label>
+                <span id="user-selected-count">已选 0 人</span>
+                <div class="btn-group selection-actions" aria-label="批量操作">
+                  <div class="batch-action-menu" id="batch-action-menu">
+                    <button class="btn btn-sm" type="button" id="btn-batch-actions" aria-haspopup="menu" aria-expanded="false" disabled>批量操作</button>
+                    <div class="batch-action-list" role="menu" aria-label="批量操作选项">
+                      <button class="batch-action-item" type="button" role="menuitem" data-batch-action="grant" disabled>批量赋予角色</button>
+                      <button class="batch-action-item" type="button" role="menuitem" data-batch-action="revoke" disabled>批量回收角色</button>
+                      <button class="batch-action-item" type="button" role="menuitem" data-batch-action="transfer" disabled>批量转岗</button>
+                    </div>
+                  </div>
+                </div>
+                <span class="selection-note">组织节点只用于筛选；操作仅作用于当前勾选用户</span>
+              </div>
               <div class="table-wrap">
-                <table class="data">
+                <table class="data user-table">
                   <thead>
                     <tr>
-                      <th>用户名</th>
-                      <th>账号</th>
-                      <th>邮箱</th>
-                      <th>手机</th>
+                      <th class="check-col"><span class="sr-only">选择</span></th>
+                      <th>用户</th>
+                      <th>账号与联系方式</th>
+                      <th>岗位归属</th>
                       <th>角色</th>
-                      <th>所属组织</th>
-                      <th>操作</th>
+                      <th>状态</th>
+                      <th class="action-col">操作</th>
                     </tr>
                   </thead>
                   <tbody id="user-tbody"></tbody>
                 </table>
                 <div class="empty-state" id="user-empty" style="display:none">
-                  <div class="ico">📭</div>
-                  <div>当前筛选下暂无用户</div>
+                  <div class="empty-icon" aria-hidden="true">—</div>
+                  <strong>当前范围暂无用户</strong>
+                  <div>调整组织节点或搜索条件后重试。</div>
                 </div>
               </div>
+              <div class="table-footer"><span id="user-pagination-label">显示 0 人</span><span>本地 POC 仅展示单页结果</span></div>
             </div>
           </div>
         </section>
@@ -1320,9 +1395,6 @@ table.data tr:hover td { background: #fafafa; }
     <button class="ctx-item" type="button" data-action="org-add">新增子节点</button>
     <button class="ctx-item" type="button" data-action="org-edit">编辑名称</button>
     <button class="ctx-item ctx-danger" type="button" data-action="org-delete">删除</button>
-    <div class="ctx-divider"></div>
-    <button class="ctx-item" type="button" data-action="batch-grant">批量赋予角色</button>
-    <button class="ctx-item" type="button" data-action="batch-revoke">批量回收角色</button>
   </div>
 
 
@@ -1427,19 +1499,13 @@ table.data tr:hover td { background: #fafafa; }
       <div class="modal-header">
         <div>
           <h3 id="batch-modal-title">批量赋予角色</h3>
-          <div class="modal-subtitle">先从组织节点查询成员，再勾选用户执行角色操作</div>
+        <div class="modal-subtitle">当前已选用户将直接执行角色操作；组织树仅用于筛选用户</div>
         </div>
         <button class="btn-icon" type="button" data-close="modal-batch">✕</button>
       </div>
       <div class="modal-body">
         <p class="confirm-text" style="margin-bottom:12px" id="batch-scope-text"></p>
-        <div class="form-hint" style="margin-bottom:12px">默认不勾选用户；本次操作只作用于你勾选的用户，不会形成组织继承。</div>
-        <div class="batch-member-toolbar">
-          <label class="checkbox"><input type="checkbox" id="batch-select-all" /> 全选当前成员</label>
-          <span class="form-hint" id="batch-selected-count">已选 0 人</span>
-        </div>
-        <div class="batch-member-list" id="batch-members"></div>
-        <div class="empty-state" id="batch-members-empty" style="display:none">当前组织范围下没有用户</div>
+        <div class="form-hint" style="margin-bottom:12px">角色操作将直接作用于用户列表中已勾选的用户；如需调整范围，请先关闭弹窗，在左侧组织树或用户搜索中重新筛选并勾选用户。</div>
         <div class="form-row" style="margin-top:14px">
           <label>选择角色<span class="req">*</span></label>
           <div class="checkbox-group" id="batch-roles"></div>
@@ -1451,6 +1517,29 @@ table.data tr:hover td { background: #fafafa; }
         <button class="btn" type="button" data-close="modal-batch">取消</button>
         <button class="btn btn-primary" type="button" id="btn-do-batch">确认赋予</button>
         <button class="btn btn-danger-solid" type="button" id="btn-do-batch-revoke">确认回收</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Position migration -->
+  <div class="modal-mask" id="modal-position-migration">
+    <div class="modal wide">
+      <div class="modal-header">
+        <div><h3>批量转岗</h3><div class="modal-subtitle">把已选用户迁移到同一个岗位；角色关系保持不变</div></div>
+        <button class="btn-icon" type="button" data-close="modal-position-migration" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="migration-summary"><span class="summary-number" id="migration-user-count">0</span><span>名用户待迁移</span><span class="summary-divider">→</span><span id="migration-current-scope">当前结果范围</span></div>
+        <div class="form-row">
+          <label for="migration-position-select">目标岗位<span class="req">*</span></label>
+          <select class="input" id="migration-position-select"></select>
+          <div class="form-hint">岗位是用户的唯一最终归属；转岗不会继承组织权限，也不会自动新增或回收角色。</div>
+          <div class="field-error" id="err-migration-position">请选择目标岗位</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" type="button" data-close="modal-position-migration">取消</button>
+        <button class="btn btn-primary" type="button" id="btn-confirm-position-migration">确认迁移</button>
       </div>
     </div>
   </div>
@@ -1479,7 +1568,7 @@ table.data tr:hover td { background: #fafafa; }
       <div class="modal-header">
         <div>
           <h3>单个添加成员权限</h3>
-          <div class="modal-subtitle">搜索并选择一名用户，再写入当前知识库成员权限</div>
+        <div class="modal-subtitle">先搜索用户，再从搜索结果中选择一名成员</div>
         </div>
         <button class="btn-icon" type="button" data-close="modal-kb-single-member">✕</button>
       </div>
@@ -1517,7 +1606,7 @@ table.data tr:hover td { background: #fafafa; }
       <div class="modal-header">
         <div>
           <h3>按组织筛选添加成员权限</h3>
-          <div class="modal-subtitle">组织节点仅用于查询用户；请在成员列表中手动勾选后逐个写入资源权限</div>
+          <div class="modal-subtitle">先选择组织筛选条件，再从用户结果中勾选成员</div>
         </div>
         <button class="btn-icon" type="button" data-close="modal-kb-members">✕</button>
       </div>
@@ -1565,7 +1654,7 @@ table.data tr:hover td { background: #fafafa; }
   <div class="toast-wrap" id="toast-wrap"></div>
 
   <script>
-/* 组织与用户 / 角色管理 · 本地可点原型 */
+/* 组织与用户 · 本地可点原型 */
 (function () {
   "use strict";
 
@@ -1858,7 +1947,7 @@ table.data tr:hover td { background: #fafafa; }
     { id: "u8", name: "吴磊", account: "wulei", email: "wulei@xinghe.com", phone: "13700008888", roleIds: ["r-user"], positionId: "p10" },
     { id: "u9", name: "郑爽", account: "zhengshuang", email: "zhengshuang@xinghe.com", phone: "13600009999", roleIds: ["r-sub"], positionId: "p11" },
     { id: "u10", name: "孙浩", account: "sunhao", email: "sunhao@xinghe.com", phone: "13600001010", roleIds: ["r-user"], positionId: "p2" },
-  ];
+  ].map((user) => user);
 
   // ——— State ———
   const state = {
@@ -1878,11 +1967,16 @@ table.data tr:hover td { background: #fafafa; }
     editingUserId: null,
     editingRoleId: null,
     pickedPositionId: null,
-    batchNodeId: null,
-    confirmCb: null,
+    batchOperation: null,
     ctxNodeId: null,
     expandAll: false,
+    selectedUserIds: new Set(),
   };
+
+  function positionLabel(positionId) {
+    const node = positionId ? findNode(positionId) : null;
+    return node && node.type === "position" ? node.name : "未设置岗位";
+  }
 
   // ——— Org helpers ———
   function walk(nodes, fn, parent = null, path = []) {
@@ -2271,10 +2365,7 @@ table.data tr:hover td { background: #fafafa; }
   function showCtxMenu(e, node) {
     state.ctxNodeId = node.id;
     const canAdd = allowedChildTypes(node.type).length > 0;
-    const batchOk = node.type === "dept" || node.type === "position";
     ctxMenu.querySelector('[data-action="org-add"]').style.display = canAdd ? "" : "none";
-    ctxMenu.querySelector('[data-action="batch-grant"]').style.display = batchOk ? "" : "none";
-    ctxMenu.querySelector('[data-action="batch-revoke"]').style.display = batchOk ? "" : "none";
     ctxMenu.classList.add("show");
     const x = Math.min(e.clientX, window.innerWidth - 200);
     const y = Math.min(e.clientY, window.innerHeight - 220);
@@ -2287,16 +2378,6 @@ table.data tr:hover td { background: #fafafa; }
   }
   document.addEventListener("click", (e) => {
     if (!ctxMenu.contains(e.target)) hideCtxMenu();
-  });
-  ctxMenu.querySelector('[data-action="batch-grant"]').addEventListener("click", () => {
-    const id = state.ctxNodeId;
-    hideCtxMenu();
-    if (id) openBatchRoleOperation(id, "grant");
-  });
-  ctxMenu.querySelector('[data-action="batch-revoke"]').addEventListener("click", () => {
-    const id = state.ctxNodeId;
-    hideCtxMenu();
-    if (id) openBatchRoleOperation(id, "revoke");
   });
   ctxMenu.querySelector('[data-action="org-add"]').addEventListener("click", () => {
     const id = state.ctxNodeId;
@@ -2484,81 +2565,105 @@ table.data tr:hover td { background: #fafafa; }
       .replace(/"/g, "&quot;");
   }
 
+  function currentUserResults() {
+    let list = state.selectedOrgId ? usersUnderOrg(state.selectedOrgId) : users.slice();
+    const q = state.userSearch.trim().toLowerCase();
+    if (q) {
+      list = list.filter((u) => [u.name, u.account, u.email || "", u.phone || ""].some((value) => value.toLowerCase().includes(q)));
+    }
+    return list;
+  }
+
+  function renderSelectionState(list) {
+    const visibleIds = new Set(list.map((user) => user.id));
+    state.selectedUserIds.forEach((id) => { if (!visibleIds.has(id)) state.selectedUserIds.delete(id); });
+    const selectedCount = state.selectedUserIds.size;
+    const selectAll = document.getElementById("user-select-all");
+    selectAll.checked = list.length > 0 && list.every((user) => state.selectedUserIds.has(user.id));
+    selectAll.indeterminate = selectedCount > 0 && !selectAll.checked;
+    document.getElementById("user-selected-count").textContent = `已选 ${selectedCount} 人`;
+    const batchActionButton = document.getElementById("btn-batch-actions");
+    batchActionButton.disabled = selectedCount === 0;
+    document.querySelectorAll("[data-batch-action]").forEach((item) => { item.disabled = selectedCount === 0; });
+  }
+
   function renderUsers() {
     const tbody = document.getElementById("user-tbody");
     const empty = document.getElementById("user-empty");
     const hint = document.getElementById("filter-hint");
     const hintText = document.getElementById("filter-hint-text");
+    const list = currentUserResults();
+    const node = state.selectedOrgId ? findNode(state.selectedOrgId) : null;
+    const path = state.selectedOrgId ? pathOf(state.selectedOrgId).join(" / ") : "全部组织";
 
-    let list = state.selectedOrgId ? usersUnderOrg(state.selectedOrgId) : users.slice();
-
-    const q = state.userSearch.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (u) =>
-          u.name.toLowerCase().includes(q) ||
-          u.account.toLowerCase().includes(q) ||
-          (u.email || "").toLowerCase().includes(q) ||
-          (u.phone || "").includes(q)
-      );
-    }
-
+    document.getElementById("result-scope").textContent = state.selectedOrgId ? `${node.name} · 含下级岗位成员 · ${path}` : "全部组织 · 可搜索全部用户";
+    document.getElementById("user-total-count").textContent = list.length;
+    document.getElementById("user-pagination-label").textContent = `显示 ${list.length} 人`;
+    document.getElementById("user-stats").textContent = `${list.length} 人`;
     if (state.selectedOrgId) {
-      const node = findNode(state.selectedOrgId);
-      const path = pathOf(state.selectedOrgId).join(" / ");
       hint.style.display = "flex";
-      hintText.textContent =
-        `已筛选：${node ? node.name : ""}（含下级全部岗位成员）· ${path}`;
-    } else {
-      hint.style.display = "none";
-    }
-
-    document.getElementById("user-stats").textContent =
-      `共 ${list.length} 人` + (state.selectedOrgId ? `（全局 ${users.length}）` : "");
+      hintText.textContent = `${node ? node.name : ""}（含下级全部岗位成员）`;
+    } else hint.style.display = "none";
 
     tbody.innerHTML = "";
-    if (!list.length) {
-      empty.style.display = "block";
-      return;
-    }
-    empty.style.display = "none";
-
+    empty.style.display = list.length ? "none" : "block";
     for (const u of list) {
+      const selected = state.selectedUserIds.has(u.id);
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td><strong>${escapeHtml(u.name)}</strong></td>
-        <td>${escapeHtml(u.account)}</td>
-        <td>${escapeHtml(u.email || "—")}</td>
-        <td>${escapeHtml(u.phone || "—")}</td>
-        <td>${roleTags(u.roleIds)}</td>
-        <td><div class="path-cell" title="${escapeHtml(pathLabel(u.positionId))}">${escapeHtml(pathLabel(u.positionId))}</div></td>
-        <td class="actions-cell">
-          <button class="btn-link" type="button" data-edit="${u.id}">编辑</button>
-          <button class="btn-link danger" type="button" data-del="${u.id}">删除</button>
-        </td>`;
+        <td class="check-col"><input type="checkbox" aria-label="选择 ${escapeHtml(u.name)}" data-user-select="${u.id}" ${selected ? "checked" : ""} /></td>
+        <td><div class="user-primary">${escapeHtml(u.name)}</div><div class="user-secondary">${escapeHtml(u.id.toUpperCase())}</div></td>
+        <td><div>${escapeHtml(u.account)}</div><div class="user-secondary">${escapeHtml(u.email || u.phone || "未填写联系方式")}</div></td>
+        <td><div class="user-primary">${escapeHtml(positionLabel(u.positionId))}</div><div class="user-secondary path-cell" title="${escapeHtml(pathLabel(u.positionId))}">${escapeHtml(pathLabel(u.positionId))}</div></td>
+        <td><div class="role-stack">${roleTags(u.roleIds)}</div></td>
+        <td><span class="state-tag ${u.positionId && findNode(u.positionId)?.type === "position" ? "state-active" : "state-warning"}">${u.positionId && findNode(u.positionId)?.type === "position" ? "正常" : "待设置岗位"}</span></td>
+        <td class="actions-cell action-col"><button class="btn-link" type="button" data-edit="${u.id}">编辑</button><button class="btn-link danger" type="button" data-del="${u.id}">删除</button></td>`;
       tbody.appendChild(tr);
     }
-
-    tbody.querySelectorAll("[data-edit]").forEach((btn) => {
-      btn.addEventListener("click", () => openUserForm(btn.getAttribute("data-edit")));
-    });
-    tbody.querySelectorAll("[data-del]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-del");
-        const u = users.find((x) => x.id === id);
-        confirmDialog(
-          "删除用户",
-          `确定删除用户 <strong>${escapeHtml(u.name)}</strong>（${escapeHtml(u.account)}）？此操作不可恢复。`,
-          () => {
-            users = users.filter((x) => x.id !== id);
-            toast("已删除用户 " + u.name);
-            renderUsers();
-            renderMainTree();
-          }
-        );
+    renderSelectionState(list);
+    tbody.querySelectorAll("[data-user-select]").forEach((checkbox) => checkbox.addEventListener("change", () => {
+      if (checkbox.checked) state.selectedUserIds.add(checkbox.dataset.userSelect); else state.selectedUserIds.delete(checkbox.dataset.userSelect);
+      renderUsers();
+    }));
+    tbody.querySelectorAll("[data-edit]").forEach((btn) => btn.addEventListener("click", () => openUserForm(btn.dataset.edit)));
+    tbody.querySelectorAll("[data-del]").forEach((btn) => btn.addEventListener("click", () => {
+      const u = users.find((x) => x.id === btn.dataset.del);
+      confirmDialog("删除用户", `确定删除用户 <strong>${escapeHtml(u.name)}</strong>（${escapeHtml(u.account)}）？此操作不可恢复。`, () => {
+        users = users.filter((x) => x.id !== u.id);
+        state.selectedUserIds.delete(u.id);
+        toast("已删除用户 " + u.name);
+        renderUsers(); renderMainTree();
       });
-    });
+    }));
   }
+
+  document.getElementById("user-select-all").addEventListener("change", (event) => {
+    currentUserResults().forEach((user) => event.target.checked ? state.selectedUserIds.add(user.id) : state.selectedUserIds.delete(user.id));
+    renderUsers();
+  });
+
+  const batchActionMenu = document.getElementById("batch-action-menu");
+  const batchActionButton = document.getElementById("btn-batch-actions");
+  batchActionButton.addEventListener("click", (event) => {
+    if (batchActionButton.disabled) return;
+    event.stopPropagation();
+    const open = batchActionMenu.classList.toggle("open");
+    batchActionButton.setAttribute("aria-expanded", String(open));
+  });
+  document.addEventListener("click", (event) => {
+    if (!batchActionMenu.contains(event.target)) {
+      batchActionMenu.classList.remove("open");
+      batchActionButton.setAttribute("aria-expanded", "false");
+    }
+  });
+  document.querySelectorAll("[data-batch-action]").forEach((item) => item.addEventListener("click", () => {
+    if (item.disabled) return;
+    batchActionMenu.classList.remove("open");
+    batchActionButton.setAttribute("aria-expanded", "false");
+    if (item.dataset.batchAction === "grant") openBatchRoleOperation("grant");
+    if (item.dataset.batchAction === "revoke") openBatchRoleOperation("revoke");
+    if (item.dataset.batchAction === "transfer") openPositionMigration();
+  }));
 
   document.getElementById("uf-org-search").addEventListener("input", (e) => {
     state.orgPickerQuery = e.target.value || "";
@@ -2570,7 +2675,38 @@ table.data tr:hover td { background: #fafafa; }
     renderUsers();
   });
 
-  // ——— User form ———
+
+  function positionOptions(selectedId) {
+    const positions = [];
+    walk(orgTree, (node) => { if (node.type === "position") positions.push(node); });
+    return positions.map((node) => `<option value="${node.id}" ${node.id === selectedId ? "selected" : ""}>${escapeHtml(pathLabel(node.id))}</option>`).join("");
+  }
+
+  function openPositionMigration() {
+    const selected = users.filter((user) => state.selectedUserIds.has(user.id));
+    if (!selected.length) return;
+    document.getElementById("migration-user-count").textContent = selected.length;
+    document.getElementById("migration-current-scope").textContent = state.selectedOrgId ? pathLabel(state.selectedOrgId) : "当前结果范围";
+    document.getElementById("migration-position-select").innerHTML = positionOptions(null);
+    document.getElementById("err-migration-position").classList.remove("show");
+    openModal("modal-position-migration");
+  }
+
+  document.getElementById("btn-confirm-position-migration").addEventListener("click", () => {
+    const positionId = document.getElementById("migration-position-select").value;
+    if (!positionId || findNode(positionId)?.type !== "position") {
+      document.getElementById("err-migration-position").classList.add("show");
+      return;
+    }
+    const selected = users.filter((user) => state.selectedUserIds.has(user.id));
+    selected.forEach((user) => { user.positionId = positionId; });
+    state.selectedUserIds.clear();
+    closeModal("modal-position-migration");
+    toast(`已将 ${selected.length} 名用户转岗至${positionLabel(positionId)}`);
+    renderUsers(); renderMainTree();
+  });
+
+
   function fillRoleCheckboxes(containerId, selected) {
     const box = document.getElementById(containerId);
     box.innerHTML = roles
@@ -2712,67 +2848,22 @@ table.data tr:hover td { background: #fafafa; }
     renderMainTree();
   });
 
-  // ——— Batch role operations ———
-  function batchMembersForNode() {
-    return state.batchNodeId ? usersUnderOrg(state.batchNodeId) : [];
-  }
-
-  function renderBatchMembers() {
-    const box = document.getElementById("batch-members");
-    const empty = document.getElementById("batch-members-empty");
-    const members = batchMembersForNode();
-    box.innerHTML = members.map((user) => `
-      <label class="batch-member-option">
-        <input type="checkbox" data-batch-user="${escapeHtml(user.id)}" />
-        <span class="member-main">${escapeHtml(user.name)}<span class="member-meta">${escapeHtml(user.account)} · ${escapeHtml(pathLabel(user.positionId))}</span></span>
-      </label>`).join("");
-    empty.style.display = members.length ? "none" : "block";
-    document.getElementById("batch-select-all").checked = false;
-    document.getElementById("batch-select-all").indeterminate = false;
-    document.getElementById("batch-selected-count").textContent = "已选 0 人";
-    box.querySelectorAll("[data-batch-user]").forEach((checkbox) => {
-      checkbox.addEventListener("change", updateBatchSelectionState);
-    });
-  }
-
-  function updateBatchSelectionState() {
-    const boxes = Array.from(document.querySelectorAll("#batch-members [data-batch-user]"));
-    const checked = boxes.filter((box) => box.checked).length;
-    const selectAll = document.getElementById("batch-select-all");
-    selectAll.checked = boxes.length > 0 && checked === boxes.length;
-    selectAll.indeterminate = checked > 0 && checked < boxes.length;
-    document.getElementById("batch-selected-count").textContent = `已选 ${checked} 人`;
-  }
-
-  function openBatchRoleOperation(nodeId, operation) {
-    const node = findNode(nodeId);
-    if (!node || (node.type !== "dept" && node.type !== "position")) {
-      toast("仅支持对部门或岗位批量操作角色", "error");
-      return;
-    }
-    state.batchNodeId = nodeId;
+  // ——— Batch user operations ———
+  function openBatchRoleOperation(operation) {
+    state.batchOperation = operation;
     document.getElementById("batch-modal-title").textContent = operation === "grant" ? "批量赋予角色" : "批量回收角色";
-    document.getElementById("batch-scope-text").innerHTML = `组织范围：<strong>${escapeHtml(node.name)}</strong>（含下级）。请在成员列表中勾选用户。`;
+    const selected = selectedBatchUsers();
+    document.getElementById("batch-scope-text").innerHTML = `已选用户：<strong id="batch-selected-user-count">${selected.length} 人</strong>。本次操作仅修改这些用户的角色关系。`;
     document.getElementById("btn-do-batch").style.display = operation === "grant" ? "" : "none";
     document.getElementById("btn-do-batch-revoke").style.display = operation === "revoke" ? "" : "none";
-    state.batchOperation = operation;
-    renderBatchMembers();
     fillRoleCheckboxes("batch-roles", []);
     document.getElementById("err-batch-roles").classList.remove("show");
-    document.getElementById("err-batch-members").classList.remove("show");
+    document.getElementById("err-batch-members").classList.toggle("show", !selected.length);
     openModal("modal-batch");
   }
 
-  document.getElementById("batch-select-all").addEventListener("change", (event) => {
-    document.querySelectorAll("#batch-members [data-batch-user]").forEach((checkbox) => {
-      checkbox.checked = event.target.checked;
-    });
-    updateBatchSelectionState();
-  });
-
   function selectedBatchUsers() {
-    const ids = new Set(Array.from(document.querySelectorAll("#batch-members [data-batch-user]:checked")).map((checkbox) => checkbox.dataset.batchUser));
-    return users.filter((user) => ids.has(user.id));
+    return users.filter((user) => state.selectedUserIds.has(user.id));
   }
 
   function selectedBatchRoles() {
@@ -2796,8 +2887,9 @@ table.data tr:hover td { background: #fafafa; }
       user.roleIds = Array.from(new Set([...user.roleIds, ...roleIds]));
       if (user.roleIds.length !== before.length) changed++;
     });
+    state.selectedUserIds.clear();
     closeModal("modal-batch");
-    toast(`已为 ${changed} 名已选用户赋予角色`);
+    toast(`已为 ${changed} 名用户赋予角色`);
     renderUsers();
   });
 
@@ -2815,16 +2907,17 @@ table.data tr:hover td { background: #fafafa; }
     }
     let changed = 0;
     members.forEach((user) => {
-      const before = user.roleIds.slice();
+      const before = user.roleIds.length;
       user.roleIds = user.roleIds.filter((roleId) => !roleIds.includes(roleId));
-      if (user.roleIds.some((roleId, index) => roleId !== before[index]) || user.roleIds.length !== before.length) changed++;
+      if (user.roleIds.length !== before) changed++;
     });
+    state.selectedUserIds.clear();
     closeModal("modal-batch");
-    toast(`已为 ${changed} 名已选用户回收角色`);
+    toast(`已为 ${changed} 名用户回收角色`);
     renderUsers();
   });
 
-  // ——— Knowledge base instance ACL demo ———  // ——— Knowledge base instance ACL demo ———
+  // ——— Knowledge base instance ACL demo ———
   const KB_ROLE_LABEL = { owner: "所有者", editor: "编辑者", viewer: "使用者" };
 
   function setKbTab(tab) {
@@ -2928,11 +3021,7 @@ table.data tr:hover td { background: #fafafa; }
     if (!state.kbOrgId) return [];
     const scopedUsers = kbUsersUnderOrg(state.kbOrgId);
     const memberAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
-    return scopedUsers.filter((candidate) => {
-      if (memberAccounts.has(candidate.account.toLowerCase())) return false;
-      if (!query) return true;
-      return [candidate.account, candidate.name, candidate.email].some((value) => value.toLowerCase().includes(query));
-    });
+    return scopedUsers.filter((candidate) => !memberAccounts.has(candidate.account.toLowerCase()));
   }
 
   function renderKbOrgPicker() {
@@ -2960,18 +3049,17 @@ table.data tr:hover td { background: #fafafa; }
     state.kbSelectedAccounts.forEach((account) => {
       if (!listAccounts.has(account.toLowerCase())) state.kbSelectedAccounts.delete(account);
     });
-    picker.innerHTML = list
-      .map((candidate) => {
-        const user = users.find((item) => item.account.toLowerCase() === candidate.account.toLowerCase());
-        const path = user ? pathLabel(user.positionId) : "";
-        const checked = state.kbSelectedAccounts.has(candidate.account.toLowerCase());
-        return `<label class="kb-member-option">
-          <input type="checkbox" data-kb-account="${escapeHtml(candidate.account.toLowerCase())}" ${checked ? "checked" : ""} />
-          <span class="member-main"><span class="member-name">${escapeHtml(candidate.name)}</span><span class="member-meta">${escapeHtml(candidate.account)} · ${escapeHtml(candidate.email)}</span></span>
-          <span class="member-org">${escapeHtml(path)}</span>
-        </label>`;
-      })
-      .join("");
+    picker.innerHTML = list.length ? list.map((candidate) => {
+      const user = users.find((item) => item.account.toLowerCase() === candidate.account.toLowerCase());
+      const path = user ? pathLabel(user.positionId) : "";
+      const checked = state.kbSelectedAccounts.has(candidate.account.toLowerCase());
+      return `<label class="kb-member-option">
+        <input type="checkbox" data-kb-account="${escapeHtml(candidate.account.toLowerCase())}" ${checked ? "checked" : ""} />
+        <span class="member-main"><span class="member-name">${escapeHtml(candidate.name)}</span><span class="member-meta">${escapeHtml(candidate.account)} · ${escapeHtml(candidate.email)}</span></span>
+        <span class="member-org">${escapeHtml(path)}</span>
+      </label>`;
+    }).join("") : "";
+    empty.textContent = state.kbOrgId ? "当前组织筛选下没有可添加用户" : "请先选择一个组织节点";
     empty.style.display = list.length ? "none" : "block";
     resultCount.textContent = `${list.length} 人`;
     selectedCount.textContent = `已选 ${state.kbSelectedAccounts.size} 人`;
@@ -2992,7 +3080,12 @@ table.data tr:hover td { background: #fafafa; }
     const picker = document.getElementById("kb-single-member-picker");
     const empty = document.getElementById("kb-single-member-empty");
     const query = (state.kbSingleMemberQuery || "").trim().toLowerCase();
-    if (!query) return [];
+    if (!query) {
+      picker.innerHTML = "";
+      empty.textContent = "请输入搜索关键词";
+      empty.style.display = "block";
+      return;
+    }
     const memberAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
     const list = query
       ? kbCandidateUsers.filter((candidate) => {
