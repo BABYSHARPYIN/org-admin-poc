@@ -5,6 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>组织与权限管理 · POC</title>
   <style>
+/* Resource authorization UI */
+.scope-chip { display:inline-flex; padding:2px 7px; margin:2px 3px 2px 0; border-radius:4px; background:#ecfdf3; color:var(--success); font-size:12px; }
+.scope-chip.active { background:var(--primary-bg); color:var(--primary); font-weight:600; }
+    .kb-role-select { min-width: 92px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 22px 4px 8px; background: #fff; color: #1f2937; font-size: 12px; } .kb-role-select:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
+  .user-role-select { min-width: 92px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 22px 4px 8px; background: #fff; color: #1f2937; font-size: 12px; } .user-role-select:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
+.access-mode-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border-radius:12px; background:#ecfdf3; color:var(--success); font-size:12px; white-space:nowrap; }
+.access-mode-badge.restricted { background:#fff7ed; color:var(--warning); }
+.visibility-notice { margin:0 0 16px; padding:10px 12px; border:1px solid #b7ebd8; border-radius:6px; background:#f0fdf8; color:#136c58; font-size:12px; line-height:1.55; }
+.visibility-notice.restricted { border-color:#fed7aa; background:#fffaf3; color:#9a4d0b; }
+.effective-panel { margin-top:16px; border-top:1px solid var(--border); padding-top:14px; }
+.effective-user { font-weight:600; }
+.effective-scopes { margin-top:6px; }
+.kb-auth-user { display:flex; flex-direction:column; gap:2px; width:100%; padding:9px 10px; border:0; border-bottom:1px solid var(--border); background:#fff; text-align:left; cursor:pointer; }
+.kb-auth-user:hover, .kb-auth-user.selected { background:var(--primary-bg); }
+</style>
+  <style>
 :root {
   --primary: #0f766e;
   --primary-hover: #0d9488;
@@ -778,7 +794,7 @@ table.data tr:hover td { background: #fafafa; }
 }
 .picked-path.show { display: block; }
 
-/* Context menu */
+/* Read-only customer organization tree */
 .ctx-menu {
   position: fixed;
   z-index: 1100;
@@ -882,6 +898,10 @@ table.data tr:hover td { background: #fafafa; }
 }
 
 .actions-cell { white-space: nowrap; }
+.btn-inline-refresh { margin-left: 8px; vertical-align: middle; }
+.data-sync-readonly { padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px; background: #f7fafc; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.user-edit-trigger { color: var(--primary); }
+.user-table th .btn-inline-refresh { color: var(--primary); border-color: var(--border-strong); background: #fff; }
 
 
 /* —— Role function-only hint —— */
@@ -1064,61 +1084,8 @@ table.data tr:hover td { background: #fafafa; }
 .kb-role-select { max-width: 130px; }
 
 
-#kb-org-picker {
-  max-height: 280px;
-}
-.kb-org-search { width: 100%; margin: 8px 0; }
-.kb-batch-layout {
-  display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(220px, 0.85fr);
-  gap: 20px;
-}
-.kb-batch-summary {
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #fafafa;
-}
-.kb-batch-summary-title { font-weight: 600; margin-bottom: 8px; }
-.kb-batch-scope { color: var(--primary); font-weight: 500; margin-bottom: 8px; }
-.kb-batch-preview { color: var(--text-secondary); font-size: 12px; line-height: 1.6; min-height: 72px; margin-bottom: 14px; }
+/* Resource authorization controls */
 
-.kb-member-modal { width: 820px; }
-.modal-subtitle { margin-top: 3px; color: var(--text-tertiary); font-size: 12px; }
-.kb-member-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.kb-member-query-box { flex: 1; }
-.kb-selected-count { color: var(--primary); font-size: 12px; white-space: nowrap; }
-.kb-member-picker-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; }
-.kb-member-org-filter, .kb-member-results { min-width: 0; }
-.picker-title { font-weight: 600; margin-bottom: 8px; }
-.kb-clear-org { border: none; background: transparent; color: var(--primary); padding: 0 0 6px; cursor: pointer; font-size: 12px; }
-.kb-member-result-head { display: flex; justify-content: space-between; align-items: center; min-height: 28px; margin-bottom: 4px; }
-.kb-member-list { border: 1px solid var(--border); border-radius: 6px; max-height: 300px; overflow: auto; }
-.kb-member-option { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
-.kb-member-option:last-child { border-bottom: none; }
-.kb-member-option:hover { background: #f5faff; }
-.kb-member-option .member-main { flex: 1; min-width: 0; }
-.kb-member-option .member-name { color: var(--text); }
-.kb-member-option .member-meta { color: var(--text-tertiary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.kb-member-option .member-org { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
-.kb-member-empty { padding: 24px 0; }
-.kb-member-permission-row { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
-.kb-member-permission-row label { font-weight: 500; white-space: nowrap; }
-.kb-member-permission-row .input { width: 130px; }
-
-.batch-action-menu { position: relative; }
-.batch-action-menu > .btn::after { content: "⌄"; margin-left: 4px; font-size: 12px; }
-.batch-action-menu.open > .btn { color: var(--primary); border-color: var(--primary); background: var(--primary-bg); }
-.batch-action-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; min-width: 160px; padding: 4px; background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-lg); display: none; }
-.batch-action-menu.open .batch-action-list { display: block; }
-.batch-action-item { display: block; width: 100%; padding: 9px 12px; border: 0; border-radius: 5px; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
-.batch-action-item:hover:not(:disabled) { background: var(--primary-bg); color: var(--primary); }
-.batch-action-item:disabled { color: var(--text-tertiary); opacity: .55; cursor: not-allowed; }
-
-.ctx-item.ctx-danger { color: #cf1322; }
-.ctx-item.ctx-danger:hover { background: #fff1f0; color: #a8071a; }
-
-.hint { margin-top: 4px; }
 
   .page-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:14px; flex-shrink:0; }
   .page-heading h1 { font-size:24px; line-height:1.25; letter-spacing:-0.02em; margin:2px 0 4px; }
@@ -1127,6 +1094,8 @@ table.data tr:hover td { background: #fafafa; }
   .page-heading-meta { color:var(--text-tertiary); font-size:12px; white-space:nowrap; padding-top:6px; }
   .status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--success); margin-right:5px; }
   .panel-caption { display:block; color:var(--text-tertiary); font-size:12px; margin-top:2px; }
+  .sync-status { color:var(--success); font-size:11px; margin-top:6px; }
+  .sync-status.is-refreshing { color:var(--warning); }
   .results-heading { padding:16px 18px 12px; display:flex; align-items:flex-start; justify-content:space-between; gap:16px; border-bottom:1px solid var(--border); flex-shrink:0; }
   .results-heading h2 { font-size:17px; margin-top:2px; }
   .result-scope { color:var(--text-secondary); font-size:12px; margin-top:4px; }
@@ -1136,14 +1105,24 @@ table.data tr:hover td { background: #fafafa; }
   .toolbar { padding:10px 18px; }
   .toolbar-note { color:var(--text-secondary); font-size:12px; }
   .toolbar-note strong { color:var(--text); }
-  .selection-bar { display:flex; align-items:center; gap:14px; min-height:44px; padding:7px 18px; background:#f7fafc; border-bottom:1px solid var(--border); color:var(--text-secondary); font-size:12px; flex-shrink:0; }
-  .selection-bar .checkbox { color:var(--text); font-weight:500; }
-  .selection-bar .btn { margin-left:4px; }
+  .selection-bar { display:flex; align-items:center; min-height:36px; padding:7px 18px; background:#f7fafc; border-bottom:1px solid var(--border); color:var(--text-secondary); font-size:12px; flex-shrink:0; }
   .selection-note { color:var(--text-tertiary); margin-left:auto; }
   .check-col { width:42px; text-align:center !important; }
   .action-col { width:126px; }
+  .user-table { table-layout: fixed; min-width: 900px; }
+  .table-wrap { overflow: auto; flex: 1; }
   .user-table th { background:#f8fafc; }
   .user-table td { padding-top:9px; padding-bottom:9px; }
+  .user-table td:nth-child(2), .user-table td:nth-child(3), .user-table td:nth-child(4) { color:var(--text-secondary); }
+  .user-table td:nth-child(7) { text-align:center; }
+  .user-table .path-cell { max-width:100%; }
+  .user-table th:nth-child(1), .user-table td:nth-child(1) { width: 14%; }
+  .user-table th:nth-child(2), .user-table td:nth-child(2) { width: 14%; }
+  .user-table th:nth-child(3), .user-table td:nth-child(3) { width: 18%; }
+  .user-table th:nth-child(4), .user-table td:nth-child(4) { width: 14%; }
+  .user-table th:nth-child(5), .user-table td:nth-child(5) { width: 24%; }
+  .user-table th:nth-child(6), .user-table td:nth-child(6) { width: 8%; }
+  .user-table th:nth-child(7), .user-table td:nth-child(7) { width: 8%; }
   .user-table tr.selected td { background:#f0fdfa; }
   .user-primary { font-weight:600; color:var(--text); }
   .user-secondary { color:var(--text-tertiary); font-size:12px; margin-top:2px; }
@@ -1155,11 +1134,11 @@ table.data tr:hover td { background: #fafafa; }
   .table-footer { display:flex; justify-content:space-between; padding:9px 18px; color:var(--text-tertiary); font-size:12px; border-top:1px solid var(--border); flex-shrink:0; }
   .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
   .legend-mark { width:8px; height:8px; border-radius:2px; display:inline-block; }
-  .legend-mark.company { background:#2563eb; } .legend-mark.subsidiary { background:#7c3aed; } .legend-mark.dept { background:#0f766e; } .legend-mark.position { background:#b45309; }
+  .legend-mark.company { background:#2563eb; } .legend-mark.subsidiary { background:#7c3aed; } .legend-mark.dept { background:#0f766e; }
   .migration-summary { display:flex; align-items:center; gap:8px; padding:12px; background:#f7fafc; border:1px solid var(--border); border-radius:7px; margin-bottom:20px; color:var(--text-secondary); }
   .summary-number { color:var(--primary); font-size:20px; font-weight:700; }
   .summary-divider { color:var(--border-strong); margin:0 4px; }
-  @media (max-width: 1050px) { .split-left { width:250px; } .selection-note { display:none; } .user-table th:nth-child(3), .user-table td:nth-child(3) { display:none; } }
+  @media (max-width: 1050px) { .split-left { width:250px; } .selection-note { display:none; } }
   @media (max-width: 760px) { .content { padding:12px; overflow:auto; } .page-heading { flex-direction:column; } .split { flex-direction:column; } .split-left { width:auto; min-height:280px; max-height:360px; } .split-right { min-height:560px; } .page-heading-meta { padding-top:0; } .selection-bar { flex-wrap:wrap; } .result-summary { display:none; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
 
@@ -1205,18 +1184,18 @@ table.data tr:hover td { background: #fafafa; }
           <div class="page-heading">
             <div>
               <div class="eyebrow">组织管理 / 用户范围</div>
-              <h1 id="organization-page-title">组织与用户</h1>
-              <p>组织节点只用于筛选用户，批量角色和转岗操作统一在用户列表中执行。</p>
+              <h1 id="organization-page-title">组织节点</h1>
+              <p>组织架构来自客户侧同步，页面只读展示同步结果；功能角色与资源授权分别管理。</p>
             </div>
             <div class="page-heading-meta"><span class="status-dot"></span>本地演示数据 · 不会同步线上</div>
           </div>
           <div class="split">
             <!-- Org tree -->
             <div class="split-left panel">
-              <div class="panel-header">
-                <div><h2>组织范围</h2><span class="panel-caption">组织只作为筛选条件，组织数据与用户权限解耦</span></div>
+              <div class="panel-header" data-sync-readonly="customer-source">
+                <div><h2>组织节点</h2><span class="panel-caption">组织查询结果，只读展示；组织新增、编辑、删除由客户侧维护</span><div class="sync-status" id="org-sync-status">最近查询：本地演示数据 · 2026-10-29 09:30</div></div>
                 <div class="btn-group">
-                  <button class="btn btn-primary btn-sm" type="button" id="btn-create-org" title="在选中节点下新增">+ 新增组织</button>
+                  <button class="btn btn-sm" type="button" id="btn-refresh-org">↻ 刷新组织</button>
                   <button class="btn btn-sm" type="button" id="btn-expand-all" title="展开/折叠">展开全部</button>
                 </div>
               </div>
@@ -1224,9 +1203,8 @@ table.data tr:hover td { background: #fafafa; }
                 <span><i class="legend-mark company"></i>公司</span>
                 <span><i class="legend-mark subsidiary"></i>子公司</span>
                 <span><i class="legend-mark dept"></i>部门</span>
-                <span><i class="legend-mark position"></i>岗位</span>
               </div>
-              <div class="org-rule-note"><strong>筛选规则</strong><br />点击公司、子公司、部门或岗位后，仅筛选右侧用户；角色赋予、回收和转岗都在用户列表勾选用户后执行。</div>
+              <div class="org-rule-note"><strong>数据边界</strong><br />组织节点来自客户侧查询，支持手动刷新；用户接口中的 ORG_CODE 可能是更细粒度节点，本系统保留完整路径并按客户组织映射重组成组织树。组织节点只读展示，不提供增删改；岗位信息保存在同步扩展数据中，不在本页面展示。</div>
               <div class="panel-body">
                 <div class="tree" id="org-tree"></div>
               </div>
@@ -1252,35 +1230,17 @@ table.data tr:hover td { background: #fafafa; }
                   <input class="input" id="user-search" aria-label="搜索用户" placeholder="搜索姓名、账号、邮箱或手机" />
                 </div>
                 <div class="toolbar-note">共 <strong id="user-total-count">0</strong> 名用户</div>
-                <div class="btn-group" style="margin-left:auto">
-                  <button class="btn btn-primary" type="button" id="btn-create-user">+ 新建用户</button>
-                </div>
               </div>
-              <div class="selection-bar" id="user-selection-bar" aria-live="polite">
-                <label class="checkbox"><input type="checkbox" id="user-select-all" /> 全选当前结果</label>
-                <span id="user-selected-count">已选 0 人</span>
-                <div class="btn-group selection-actions" aria-label="批量操作">
-                  <div class="batch-action-menu" id="batch-action-menu">
-                    <button class="btn btn-sm" type="button" id="btn-batch-actions" aria-haspopup="menu" aria-expanded="false" disabled>批量操作</button>
-                    <div class="batch-action-list" role="menu" aria-label="批量操作选项">
-                      <button class="batch-action-item" type="button" role="menuitem" data-batch-action="grant" disabled>批量赋予角色</button>
-                      <button class="batch-action-item" type="button" role="menuitem" data-batch-action="revoke" disabled>批量回收角色</button>
-                      <button class="batch-action-item" type="button" role="menuitem" data-batch-action="transfer" disabled>批量转岗</button>
-                    </div>
-                  </div>
-                </div>
-                <span class="selection-note">组织节点只用于筛选；操作仅作用于当前勾选用户</span>
-              </div>
+              <div class="selection-bar" id="user-selection-bar" aria-live="polite"><span class="selection-note">用户信息和功能角色可编辑；所属组织由客户侧同步，通过组织树手动刷新更新。</span></div>
               <div class="table-wrap">
                 <table class="data user-table">
                   <thead>
                     <tr>
-                      <th class="check-col"><span class="sr-only">选择</span></th>
                       <th>用户</th>
-                      <th>账号与联系方式</th>
-                      <th>岗位归属</th>
+                      <th>账号</th>
+                      <th>邮箱</th>
+                      <th>手机号</th>
                       <th>角色</th>
-                      <th>状态</th>
                       <th class="action-col">操作</th>
                     </tr>
                   </thead>
@@ -1297,85 +1257,51 @@ table.data tr:hover td { background: #fafafa; }
           </div>
         </section>
 
-        <!-- Page: 知识库权限示例（实例 ACL） -->
+        <!-- Page: 知识库资源授权 -->
         <section class="page" id="page-kb-perm">
           <div class="kb-demo panel">
             <div class="kb-demo-header">
               <div class="kb-demo-title">
                 <span class="kb-back">←</span>
                 <span class="kb-ico">📘</span>
-                <h2>测试知识库</h2>
+                <h2>知识库资源授权</h2>
               </div>
-              <div class="kb-demo-hint">资源权限在实例上由所有者配置；平台角色只控制功能入口。</div>
             </div>
             <div class="kb-layout">
               <aside class="kb-side">
-                <button class="kb-side-item" type="button" disabled>文件</button>
-                <button class="kb-side-item active" type="button">设置</button>
+                <button class="kb-side-item" type="button" disabled>资源信息</button>
+                <button class="kb-side-item active" type="button">资源授权</button>
               </aside>
               <div class="kb-main">
                 <div class="kb-tabs" id="kb-tabs">
                   <button class="kb-tab" type="button" data-kb-tab="basic">基本信息</button>
-                  <button class="kb-tab active" type="button" data-kb-tab="perm">公开性设置</button>
+                  <button class="kb-tab active" type="button" data-kb-tab="perm">资源授权</button>
                 </div>
-
                 <div class="kb-tab-panel" id="kb-panel-basic">
-                  <div class="form-row">
-                    <label>知识库名称</label>
-                    <input class="input" value="测试知识库" readonly />
-                  </div>
-                  <div class="form-row">
-                    <label>描述</label>
-                    <textarea class="textarea" readonly>POC 示意：基本信息页为占位，权限交互见「公开性设置」。</textarea>
-                  </div>
+                  <div class="form-row"><label>资源名称</label><input class="input" value="测试知识库" readonly /></div>
+                  <div class="form-row"><label>资源标识</label><input class="input" value="kb-001" readonly /></div>
+                  <div class="form-row"><label>可用权限</label><div class="scope-chips"><span>查看</span><span>编辑</span><span>管理</span></div></div>
                 </div>
-
                 <div class="kb-tab-panel active" id="kb-panel-perm">
                   <div class="kb-section">
                     <h3>公开性设置</h3>
-                    <div class="form-row" style="margin-bottom:8px">
-                      <label>知识库访问权限</label>
-                    </div>
+                    <div class="form-row" style="margin-bottom:8px"><label>知识库访问权限</label></div>
                     <div class="visibility-radios" id="kb-visibility">
-                      <label class="vis-option">
-                        <input type="radio" name="kb-vis" value="restricted" checked />
-                        <span>
-                          <strong>受限访问</strong>
-                          <small>仅限明确授权的用户访问当前知识库</small>
-                        </span>
-                      </label>
-                      <label class="vis-option">
-                        <input type="radio" name="kb-vis" value="public" />
-                        <span>
-                          <strong>公开访问</strong>
-                          <small>平台内所有用户，均可访问当前知识库</small>
-                        </span>
-                      </label>
+                      <label class="vis-option"><input type="radio" name="kb-vis" value="restricted" checked /><span><strong>受限访问</strong><small>仅限明确授权的成员访问当前知识库</small></span></label>
+                      <label class="vis-option"><input type="radio" name="kb-vis" value="public" /><span><strong>公开访问</strong><small>平台内所有成员均可访问当前知识库</small></span></label>
                     </div>
+                    <div class="visibility-notice restricted" id="kb-visibility-notice">当前为受限访问，访问知识库时会校验成员的资源权限。</div>
                   </div>
-
                   <div class="kb-section">
-                    <div class="kb-section-head">
-                      <h3>成员管理</h3>
+                    <div class="kb-section-head"><div><h3>授权列表</h3></div>
                       <div class="btn-group">
-                        <div class="search-box">
-                          <span class="search-ico">⌕</span>
-                          <input class="input" id="kb-member-search" placeholder="搜索用户名/姓名" />
-                        </div>
-                        <button class="btn" type="button" id="btn-add-kb-member-single">单个添加</button>
-                        <button class="btn btn-primary" type="button" id="btn-add-kb-member-org">按组织筛选添加</button>
+                        <div class="search-box"><span class="search-ico">⌕</span><input class="input" id="kb-member-search" placeholder="搜索成员、姓名或角色" /></div>
+                        <button class="btn btn-primary" type="button" id="btn-add-kb-member">添加授权</button>
                       </div>
                     </div>
                     <div class="table-wrap">
                       <table class="data">
-                        <thead>
-                          <tr>
-                            <th>账号</th>
-                            <th>姓名</th>
-                            <th>角色</th>
-                            <th>操作</th>
-                          </tr>
-                        </thead>
+                        <thead><tr><th>成员</th><th>组织信息</th><th>角色</th><th>操作</th></tr></thead>
                         <tbody id="kb-member-tbody"></tbody>
                       </table>
                     </div>
@@ -1390,161 +1316,27 @@ table.data tr:hover td { background: #fafafa; }
     </div>
   </div>
 
-  <!-- Context menu for org tree -->
-  <div class="ctx-menu" id="ctx-menu">
-    <button class="ctx-item" type="button" data-action="org-add">新增子节点</button>
-    <button class="ctx-item" type="button" data-action="org-edit">编辑名称</button>
-    <button class="ctx-item ctx-danger" type="button" data-action="org-delete">删除</button>
-  </div>
-
-
-  <!-- Modal: Org node form -->
-  <div class="modal-mask" id="modal-org">
-    <div class="modal" style="width:440px">
-      <div class="modal-header">
-        <h3 id="org-modal-title">新增组织节点</h3>
-        <button class="btn-icon" type="button" data-close="modal-org">✕</button>
-      </div>
+  <!-- Modal: User edit form -->
+  <div class="modal-mask" id="modal-user-edit">
+    <div class="modal wide">
+      <div class="modal-header"><h3>用户详情</h3><button class="btn-icon" type="button" data-close="modal-user-edit">✕</button></div>
       <div class="modal-body">
-        <form id="org-form" autocomplete="off">
-          <input type="hidden" id="of-mode" />
-          <input type="hidden" id="of-parent-id" />
-          <input type="hidden" id="of-id" />
-          <div class="form-row" id="of-parent-row">
-            <label>上级节点</label>
-            <div class="input" id="of-parent-label" style="background:var(--fill);cursor:default"></div>
-          </div>
-          <div class="form-row" id="of-type-row">
-            <label>节点类型<span class="req">*</span></label>
-            <select class="input" id="of-type"></select>
-            <div class="field-error" id="err-org-type">请选择类型</div>
-          </div>
-          <div class="form-row">
-            <label>名称<span class="req">*</span></label>
-            <input class="input" id="of-name" maxlength="64" placeholder="节点名称" />
-            <div class="field-error" id="err-org-name">请填写名称</div>
-          </div>
-          <p class="hint" id="of-hint" style="font-size:12px;color:var(--text-secondary);margin:0"></p>
+        <form id="user-edit-form" autocomplete="off">
+          <input type="hidden" id="ue-id" />
+          <div class="form-row"><label for="ue-name">姓名<span class="req">*</span></label><input class="input" id="ue-name" maxlength="32" /><div class="field-error" id="err-ue-name">请填写姓名</div></div>
+          <div class="form-row"><label for="ue-account">账号<span class="req">*</span></label><input class="input" id="ue-account" maxlength="32" /><div class="field-error" id="err-ue-account">请填写账号</div></div>
+          <div class="form-row"><label for="ue-email">邮箱</label><input class="input" id="ue-email" type="email" maxlength="128" /></div>
+          <div class="form-row"><label for="ue-phone">手机</label><input class="input" id="ue-phone" maxlength="32" /></div>
+          <div class="form-row"><label>功能角色</label><div class="checkbox-group" id="ue-roles"></div><div class="form-hint">角色由本系统维护，可按用户编辑；可选管理员、子管理员、普通用户等功能角色。</div><div class="field-error" id="err-ue-roles">请至少选择一个角色</div></div>
+          <div class="form-row"><label>所属组织</label><div class="data-sync-readonly" id="ue-organization-info">由客户侧组织同步维护</div></div>
+          <div class="form-row"><label>岗位</label><div class="data-sync-readonly" id="ue-job-info">由客户侧用户数据同步维护</div></div>
         </form>
       </div>
-      <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-org">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-save-org">保存</button>
-      </div>
+      <div class="modal-footer"><button class="btn" type="button" data-close="modal-user-edit">取消</button><button class="btn btn-primary" type="button" id="btn-save-user-edit">保存</button></div>
     </div>
   </div>
 
-  <!-- Modal: User form -->
-  <div class="modal-mask" id="modal-user">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="user-modal-title">新建用户</h3>
-        <button class="btn-icon" type="button" data-close="modal-user">✕</button>
-      </div>
-      <div class="modal-body">
-        <form id="user-form" autocomplete="off">
-          <input type="hidden" id="uf-id" />
-          <div class="form-row">
-            <label>用户名<span class="req">*</span></label>
-            <input class="input" id="uf-name" maxlength="32" placeholder="显示名称" />
-            <div class="field-error" id="err-name">请填写用户名</div>
-          </div>
-          <div class="form-row">
-            <label>账号<span class="req">*</span></label>
-            <input class="input" id="uf-account" maxlength="32" placeholder="登录账号" />
-            <div class="field-error" id="err-account">请填写账号</div>
-          </div>
-          <div class="form-row" id="uf-password-row">
-            <label>密码<span class="req">*</span></label>
-            <input class="input" id="uf-password" type="password" placeholder="至少 6 位" />
-            <div class="field-error" id="err-password">请填写密码（至少 6 位）</div>
-          </div>
-          <div class="form-row">
-            <label>邮箱</label>
-            <input class="input" id="uf-email" type="email" placeholder="name@example.com" />
-          </div>
-          <div class="form-row">
-            <label>手机</label>
-            <input class="input" id="uf-phone" placeholder="11 位手机号" />
-          </div>
-          <div class="form-row">
-            <label>角色<span class="req">*</span></label>
-            <div class="checkbox-group" id="uf-roles"></div>
-            <div class="field-error" id="err-roles">请至少选择一个角色</div>
-          </div>
-          <div class="form-row">
-            <label>所属组织<span class="req">*</span></label>
-            <div class="form-hint">须选到岗位节点；公司 / 部门不可提交</div>
-            <div class="search-box org-picker-search">
-              <span class="search-ico">⌕</span>
-              <input class="input" id="uf-org-search" placeholder="搜索组织节点" autocomplete="off" />
-            </div>
-            <div class="org-picker" id="uf-org-picker"></div>
-            <div class="org-picker-empty" id="uf-org-empty">无匹配的组织节点</div>
-            <div class="picked-path" id="uf-picked-path"></div>
-            <div class="field-error" id="err-org">请选择岗位作为所属组织</div>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-user">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-save-user">保存</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- Modal: Batch role operation -->
-  <div class="modal-mask" id="modal-batch">
-    <div class="modal wide">
-      <div class="modal-header">
-        <div>
-          <h3 id="batch-modal-title">批量赋予角色</h3>
-        <div class="modal-subtitle">当前已选用户将直接执行角色操作；组织树仅用于筛选用户</div>
-        </div>
-        <button class="btn-icon" type="button" data-close="modal-batch">✕</button>
-      </div>
-      <div class="modal-body">
-        <p class="confirm-text" style="margin-bottom:12px" id="batch-scope-text"></p>
-        <div class="form-hint" style="margin-bottom:12px">角色操作将直接作用于用户列表中已勾选的用户；如需调整范围，请先关闭弹窗，在左侧组织树或用户搜索中重新筛选并勾选用户。</div>
-        <div class="form-row" style="margin-top:14px">
-          <label>选择角色<span class="req">*</span></label>
-          <div class="checkbox-group" id="batch-roles"></div>
-          <div class="field-error" id="err-batch-roles">请至少选择一个角色</div>
-        </div>
-        <div class="field-error" id="err-batch-members">请至少选择一名用户</div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-batch">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-do-batch">确认赋予</button>
-        <button class="btn btn-danger-solid" type="button" id="btn-do-batch-revoke">确认回收</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Position migration -->
-  <div class="modal-mask" id="modal-position-migration">
-    <div class="modal wide">
-      <div class="modal-header">
-        <div><h3>批量转岗</h3><div class="modal-subtitle">把已选用户迁移到同一个岗位；角色关系保持不变</div></div>
-        <button class="btn-icon" type="button" data-close="modal-position-migration" aria-label="关闭">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="migration-summary"><span class="summary-number" id="migration-user-count">0</span><span>名用户待迁移</span><span class="summary-divider">→</span><span id="migration-current-scope">当前结果范围</span></div>
-        <div class="form-row">
-          <label for="migration-position-select">目标岗位<span class="req">*</span></label>
-          <select class="input" id="migration-position-select"></select>
-          <div class="form-hint">岗位是用户的唯一最终归属；转岗不会继承组织权限，也不会自动新增或回收角色。</div>
-          <div class="field-error" id="err-migration-position">请选择目标岗位</div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-position-migration">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-confirm-position-migration">确认迁移</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Confirm -->
   <div class="modal-mask" id="modal-confirm">
     <div class="modal" style="width:420px">
       <div class="modal-header">
@@ -1562,94 +1354,8 @@ table.data tr:hover td { background: #fafafa; }
   </div>
 
 
-  <!-- Modal: Single KB member permission picker -->
-  <div class="modal-mask" id="modal-kb-single-member">
-    <div class="modal">
-      <div class="modal-header">
-        <div>
-          <h3>单个添加成员权限</h3>
-        <div class="modal-subtitle">先搜索用户，再从搜索结果中选择一名成员</div>
-        </div>
-        <button class="btn-icon" type="button" data-close="modal-kb-single-member">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-row">
-          <label>搜索用户<span class="req">*</span></label>
-          <div class="search-box">
-            <span class="search-ico">⌕</span>
-            <input class="input" id="kb-single-member-query" placeholder="搜索用户名 / 账号 / 邮箱" />
-          </div>
-        </div>
-        <div class="form-row">
-          <label>用户列表</label>
-          <div class="kb-member-list" id="kb-single-member-picker"></div>
-          <div class="empty-state kb-member-empty" id="kb-single-member-empty" style="display:none">没有匹配的可添加用户</div>
-          <div class="field-error" id="err-kb-single-member">请选择一名用户</div>
-        </div>
-        <div class="kb-member-permission-row">
-          <label>资源角色<span class="req">*</span></label>
-          <select class="input" id="kb-single-member-role">
-            <option value="editor">编辑者</option>
-            <option value="viewer">使用者</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-kb-single-member">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-confirm-kb-single-member">确认添加</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-mask" id="modal-kb-members">
-    <div class="modal wide kb-member-modal">
-      <div class="modal-header">
-        <div>
-          <h3>按组织筛选添加成员权限</h3>
-          <div class="modal-subtitle">先选择组织筛选条件，再从用户结果中勾选成员</div>
-        </div>
-        <button class="btn-icon" type="button" data-close="modal-kb-members">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="kb-member-toolbar">
-          <span class="kb-selected-count" id="kb-selected-count">已选 0 人</span>
-        </div>
-        <div class="kb-member-picker-layout">
-          <div class="kb-member-org-filter">
-            <div class="picker-title">组织筛选</div>
-            <div class="search-box kb-org-search">
-              <span class="search-ico">⌕</span>
-              <input class="input" id="kb-org-search" placeholder="搜索公司 / 子公司 / 部门 / 岗位" />
-            </div>
-            <button class="kb-clear-org" type="button" id="kb-clear-org">全部组织</button>
-            <div class="org-picker kb-org-picker" id="kb-org-picker"></div>
-            <div class="form-hint">组织节点只用于筛选成员，选择后仍需在右侧成员列表中勾选。</div>
-          </div>
-          <div class="kb-member-results">
-            <div class="picker-title">成员列表</div>
-            <div class="kb-member-result-head">
-              <label class="checkbox"><input type="checkbox" id="kb-select-all" /> 全选当前结果</label>
-              <span id="kb-result-count" class="form-hint">0 人</span>
-            </div>
-            <div class="kb-member-list" id="kb-member-picker"></div>
-            <div class="empty-state kb-member-empty" id="kb-member-picker-empty" style="display:none">当前筛选下没有可添加用户</div>
-          </div>
-        </div>
-        <div class="kb-member-permission-row">
-          <label>资源角色<span class="req">*</span></label>
-          <select class="input" id="kb-member-role">
-            <option value="editor">编辑者</option>
-            <option value="viewer">使用者</option>
-          </select>
-          <span class="form-hint">确认后按用户逐个写入知识库成员权限；已有成员不会重复添加。</span>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-kb-members">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-confirm-kb-members">确认添加</button>
-      </div>
-    </div>
-  </div>
+  <!-- Modal: Resource authorization picker -->
+  <div class="modal-mask" id="modal-kb-member-picker"><div class="modal wide"><div class="modal-header"><div><h3>添加授权</h3><div class="modal-subtitle">选择组织或成员，并设置其在当前知识库中的角色</div></div><button class="btn-icon" type="button" data-close="modal-kb-member-picker">✕</button></div><div class="modal-body"><div class="kb-member-picker-layout"><div class="kb-member-org-filter"><div class="picker-title">添加成员</div><div class="search-box kb-org-search"><span class="search-ico">⌕</span><input class="input" id="kb-auth-search" placeholder="搜索成员或组织节点" /></div><div class="form-hint">搜索前不展示组织节点；输入姓名、账号或组织名称后选择一名用户或一个组织节点。</div><div class="org-picker" id="kb-auth-picker"></div></div><div class="kb-member-results"><div class="form-row"><label>访问角色<span class="req">*</span></label><select class="input" id="kb-auth-role"><option value="admin">管理员</option><option value="editor">编辑者</option><option value="viewer">查看者</option></select></div><div class="form-hint">组织节点仅用于筛选成员，最终授权对象仍是勾选的用户。</div><div class="field-error" id="err-kb-auth">请选择一个授权对象</div></div></div></div><div class="modal-footer"><button class="btn" type="button" data-close="modal-kb-member-picker">取消</button><button class="btn btn-primary" type="button" id="btn-confirm-kb-member">确认授权</button></div></div></div>
 
   <div class="toast-wrap" id="toast-wrap"></div>
 
@@ -1659,92 +1365,34 @@ table.data tr:hover td { background: #fafafa; }
   "use strict";
 
   // ——— Seed: org tree ———
-  // type: company | subsidiary | dept | position
-  const ORG_STORAGE_KEY = "org-admin-poc-org-tree-v1";
-  const TYPE_LABEL = { company: "公司", subsidiary: "子公司", dept: "部门", position: "岗位" };
+  // type: company | subsidiary | dept
+  const ORG_STORAGE_KEY = "org-admin-poc-org-tree-v2";
+  const TYPE_LABEL = { company: "公司", subsidiary: "子公司", dept: "部门" };
   const DEFAULT_ORG_TREE = [
     {
-      id: "c1", name: "星河科技集团", type: "company",
+      id: "org-00", code: "00", name: "中国核电", type: "company",
       children: [
-        {
-          id: "s1", name: "星河智造子公司", type: "subsidiary",
+        { id: "org-11", code: "11", name: "中国核电总部", type: "company",
           children: [
-            {
-              id: "d1", name: "生产部", type: "dept",
-              children: [
-                {
-                  id: "d1-1", name: "生产1部", type: "dept",
-                  children: [
-                    { id: "p1", name: "班长", type: "position" },
-                    { id: "p2", name: "质检员", type: "position" },
-                    { id: "p3", name: "操作工", type: "position" },
-                  ],
-                },
-                {
-                  id: "d1-2", name: "生产2部", type: "dept",
-                  children: [
-                    { id: "p4", name: "班长", type: "position" },
-                    { id: "p5", name: "设备员", type: "position" },
-                  ],
-                },
-              ],
-            },
-            {
-              id: "d2", name: "研发部", type: "dept",
-              children: [
-                { id: "p6", name: "算法工程师", type: "position" },
-                { id: "p7", name: "前端工程师", type: "position" },
-                { id: "p8", name: "产品经理", type: "position" },
-              ],
-            },
-          ],
+            { id: "org-21", code: "21", name: "战略规划部", type: "dept", children: [] },
+            { id: "org-23", code: "23", name: "直属单位管理部", type: "dept", children: [
+              { id: "org-31", code: "31", name: "安全质量处", type: "dept", children: [{ id: "org-41", code: "41", name: "核安全管理科", type: "dept" }] },
+            ] },
+          ]
         },
-        {
-          id: "s2", name: "星河数据子公司", type: "subsidiary",
-          children: [
-            {
-              id: "d3", name: "销售部", type: "dept",
-              children: [
-                { id: "p9", name: "销售经理", type: "position" },
-                { id: "p10", name: "销售专员", type: "position" },
-              ],
-            },
-            {
-              id: "d4", name: "人力资源部", type: "dept",
-              children: [
-                { id: "p11", name: "HRBP", type: "position" },
-                { id: "p12", name: "招聘专员", type: "position" },
-              ],
-            },
-          ],
-        },
+        { id: "org-12", code: "12", name: "三门核电", type: "company", children: [
+          { id: "org-22", code: "22", name: "综合管理部", type: "dept", children: [
+            { id: "org-10021010", code: "10021010", name: "信息项目处", type: "dept" },
+            { id: "org-10021012", code: "10021012", name: "维修处", type: "dept" },
+          ] },
+        ] },
+        { id: "org-51", code: "51", name: "虚拟机构", type: "dept", children: [] },
+        { id: "org-61", code: "61", name: "党工团组织", type: "dept", children: [] },
       ],
     },
   ];
 
-  let orgTree = loadOrgTree();
-
-  function loadOrgTree() {
-    try {
-      const raw = localStorage.getItem(ORG_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length) return parsed;
-      }
-    } catch (_) {}
-    return JSON.parse(JSON.stringify(DEFAULT_ORG_TREE));
-  }
-
-  function persistOrgTree() {
-    try {
-      localStorage.setItem(ORG_STORAGE_KEY, JSON.stringify(orgTree));
-    } catch (_) {}
-  }
-
-  function cloneDefaultOrgTree() {
-    orgTree = JSON.parse(JSON.stringify(DEFAULT_ORG_TREE));
-    persistOrgTree();
-  }
+  const orgTree = JSON.parse(JSON.stringify(DEFAULT_ORG_TREE));
 
   // ——— Seed: permission modules（与 Wiki §3.2 功能权限矩阵一一对应） ———
   const permModules = [
@@ -1760,13 +1408,8 @@ table.data tr:hover td { background: #fafafa; }
       perms: [
         { key: "user.profile", label: "个人信息管理" },
         { key: "user.view", label: "查看用户（列表）" },
-        { key: "user.create", label: "创建用户" },
-        { key: "user.edit", label: "编辑用户" },
-        { key: "user.delete", label: "删除用户" },
-        { key: "org.view", label: "查看组织树" },
-        { key: "org.create", label: "新增组织节点" },
-        { key: "org.edit", label: "编辑组织节点" },
-        { key: "org.delete", label: "删除组织节点" },
+        { key: "org.view", label: "查看客户组织查询结果" },
+        { key: "org.refresh", label: "手动刷新组织与用户归属" },
       ],
     },
     {
@@ -1912,71 +1555,226 @@ table.data tr:hover td { background: #fafafa; }
     },
   ];
 
-  // ——— Seed: sample knowledge base instance ACL ———
-  let kbVisibility = "restricted"; // restricted | public
-  let kbMembers = [
-    { account: "haha", name: "hh", role: "owner" },
-    { account: "admin", name: "管理员1", role: "editor" },
+  // ——— Seed: customer API ACCOUNT_LIST, organization mapping and resource authorization ———
+  // This is the read-only customer-side response used by the POC. Organization ownership stays with the customer system.
+  const CUSTOMER_ACCOUNT_LIST = [
+    {
+      "EMPLOYEE_NO": "80001001",
+      "EMPLOYEE_NAME": "张三",
+      "GENDER": "男",
+      "EMPLOYEE_TYPE": "正式",
+      "EMPLOYEE_SUB_TYPE": "正式",
+      "EMAIL": "zhangsan@cnnp.com.cn",
+      "MOBILE": "13939393939",
+      "JOB_LEVEL": "P09",
+      "ORG_CODE": "10021010",
+      "ORG_NAME": "信息项目处",
+      "JOB_CODE": "1002101010",
+      "JOB_NAME": "IT 运维",
+      "ORG_LIST": [],
+      "START_DATE": "20200101",
+      "END_DATE": "20991231"
+    },
+    {
+      "EMPLOYEE_NO": "80001002",
+      "EMPLOYEE_NAME": "李四",
+      "GENDER": "男",
+      "EMPLOYEE_TYPE": "正式",
+      "EMPLOYEE_SUB_TYPE": "正式",
+      "EMAIL": "lisi@cnnp.com.cn",
+      "MOBILE": "13939393940",
+      "JOB_LEVEL": "P06",
+      "ORG_CODE": "10021010",
+      "ORG_NAME": "信息项目处",
+      "JOB_CODE": "1002101010",
+      "JOB_NAME": "IT 运维",
+      "ORG_LIST": [],
+      "START_DATE": "20200101",
+      "END_DATE": "20991231"
+    },
+    {
+      "EMPLOYEE_NO": "80001003",
+      "EMPLOYEE_NAME": "王强",
+      "GENDER": "男",
+      "EMPLOYEE_TYPE": "正式",
+      "EMPLOYEE_SUB_TYPE": "正式",
+      "EMAIL": "wangqiang@cnnp.com.cn",
+      "MOBILE": "13939393941",
+      "JOB_LEVEL": "P07",
+      "ORG_CODE": "10021012",
+      "ORG_NAME": "维修处",
+      "JOB_CODE": "1002101020",
+      "JOB_NAME": "维修工",
+      "ORG_LIST": [],
+      "START_DATE": "20200101",
+      "END_DATE": "20991231"
+    },
+    {
+      "EMPLOYEE_NO": "80001004",
+      "EMPLOYEE_NAME": "赵敏",
+      "GENDER": "男",
+      "EMPLOYEE_TYPE": "正式",
+      "EMPLOYEE_SUB_TYPE": "正式",
+      "EMAIL": "zhaomin@cnnp.com.cn",
+      "MOBILE": "13939393942",
+      "JOB_LEVEL": "P08",
+      "ORG_CODE": "10021012",
+      "ORG_NAME": "维修处",
+      "JOB_CODE": "1002101020",
+      "JOB_NAME": "维修工",
+      "ORG_LIST": [],
+      "START_DATE": "20200101",
+      "END_DATE": "20991231"
+    },
+    {
+      "EMPLOYEE_NO": "80001005",
+      "EMPLOYEE_NAME": "陈晨",
+      "GENDER": "男",
+      "EMPLOYEE_TYPE": "正式",
+      "EMPLOYEE_SUB_TYPE": "正式",
+      "EMAIL": "chenchen@cnnp.com.cn",
+      "MOBILE": "13939393943",
+      "JOB_LEVEL": "P05",
+      "ORG_CODE": "41",
+      "ORG_NAME": "核安全管理科",
+      "JOB_CODE": "1002101030",
+      "JOB_NAME": "前端工程师",
+      "ORG_LIST": [],
+      "START_DATE": "20200101",
+      "END_DATE": "20991231"
+    },
+    {
+      "EMPLOYEE_NO": "80001006",
+      "EMPLOYEE_NAME": "刘洋",
+      "GENDER": "男",
+      "EMPLOYEE_TYPE": "正式",
+      "EMPLOYEE_SUB_TYPE": "正式",
+      "EMAIL": "liuyang@cnnp.com.cn",
+      "MOBILE": "13939393944",
+      "JOB_LEVEL": "P04",
+      "ORG_CODE": "41",
+      "ORG_NAME": "核安全管理科",
+      "JOB_CODE": "1002101031",
+      "JOB_NAME": "班长",
+      "ORG_LIST": [],
+      "START_DATE": "20200101",
+      "END_DATE": "20991231"
+    },
+    {
+      "EMPLOYEE_NO": "80001007",
+      "EMPLOYEE_NAME": "孙雷",
+      "GENDER": "男",
+      "EMPLOYEE_TYPE": "正式",
+      "EMPLOYEE_SUB_TYPE": "正式",
+      "EMAIL": "sunlei@cnnp.com.cn",
+      "MOBILE": "13939393945",
+      "JOB_LEVEL": "P03",
+      "ORG_CODE": "23",
+      "ORG_NAME": "直属单位管理部",
+      "JOB_CODE": "1002101040",
+      "JOB_NAME": "业务专员",
+      "ORG_LIST": [],
+      "START_DATE": "20200101",
+      "END_DATE": "20991231"
+    },
+    {
+      "EMPLOYEE_NO": "80001008",
+      "EMPLOYEE_NAME": "何艳",
+      "GENDER": "男",
+      "EMPLOYEE_TYPE": "正式",
+      "EMPLOYEE_SUB_TYPE": "正式",
+      "EMAIL": "heyan@cnnp.com.cn",
+      "MOBILE": "13939393946",
+      "JOB_LEVEL": "P02",
+      "ORG_CODE": "12",
+      "ORG_NAME": "三门核电",
+      "JOB_CODE": "1002101050",
+      "JOB_NAME": "综合管理",
+      "ORG_LIST": [],
+      "START_DATE": "20200101",
+      "END_DATE": "20991231"
+    }
   ];
-  // Candidates for add-member (demo pool beyond seed members)
-  const kbCandidateUsers = [
-    { account: "haha", name: "hh", email: "haha@example.com" },
-    { account: "admin", name: "管理员1", email: "admin@gmail.com" },
-    { account: "zhangwei", name: "张伟", email: "zhangwei@xinghe.com" },
-    { account: "lina", name: "李娜", email: "lina@xinghe.com" },
-    { account: "wangqiang", name: "王强", email: "wangqiang@xinghe.com" },
-    { account: "zhaomin", name: "赵敏", email: "zhaomin@xinghe.com" },
-    { account: "chenchen", name: "陈晨", email: "chenchen@xinghe.com" },
-    { account: "liuyang", name: "刘洋", email: "liuyang@xinghe.com" },
-    { account: "zhoufang", name: "周芳", email: "zhoufang@xinghe.com" },
-    { account: "wulei", name: "吴磊", email: "wulei@xinghe.com" },
-    { account: "zhengshuang", name: "郑爽", email: "zhengshuang@xinghe.com" },
-    { account: "sunhao", name: "孙浩", email: "sunhao@xinghe.com" },
-    { account: "Rio", name: "Rio", email: "1455395994@qq.com" },
+  const CUSTOMER_ORG_API_RESPONSE = {
+    Service: {
+      Route: {
+        ServiceID: "20070000000002",
+        SerialNO: "150805200700000018",
+        ServiceTime: "20150805123000",
+        SourceSysID: "40030",
+        ServiceResponse: { Status: "COMPLETE", Code: "S000A000", Desc: "Service Success" },
+      },
+      Data: { Response: { ACCOUNT_LIST: CUSTOMER_ACCOUNT_LIST } },
+    },
+  };
+  const CUSTOMER_ORG_SOURCE_RECORDS = [
+    { customerOrgId: "00", parentCustomerOrgId: null, name: "中国核电", orgType: "root", hierarchyLevel: "root", fullPathIds: ["00"], fullPathNames: ["00 中国核电"], isLeaf: false, logtoOrganizationId: "b05at40ct3il" },
+    { customerOrgId: "11", parentCustomerOrgId: "00", name: "中国核电总部", orgType: "company", hierarchyLevel: "company", fullPathIds: ["00", "11"], fullPathNames: ["00 中国核电", "11 中国核电总部"], isLeaf: false, logtoOrganizationId: "eqovy52t7j6i" },
+    { customerOrgId: "12", parentCustomerOrgId: "00", name: "三门核电", orgType: "company", hierarchyLevel: "company", fullPathIds: ["00", "12"], fullPathNames: ["00 中国核电", "12 三门核电"], isLeaf: false, logtoOrganizationId: "iu9vpjj4gjxe" },
+    { customerOrgId: "22", parentCustomerOrgId: "12", name: "综合管理部", orgType: "department", hierarchyLevel: "department", fullPathIds: ["00", "12", "22"], fullPathNames: ["00 中国核电", "12 三门核电", "22 综合管理部"], isLeaf: false, logtoOrganizationId: "efxnxpek7dqd" },
+    { customerOrgId: "10021010", parentCustomerOrgId: "22", name: "信息项目处", orgType: "department", hierarchyLevel: "department", fullPathIds: ["00", "12", "22", "10021010"], fullPathNames: ["00 中国核电", "12 三门核电", "22 综合管理部", "10021010 信息项目处"], isLeaf: true, logtoOrganizationId: "jnrsf7p6wztd" },
+    { customerOrgId: "10021012", parentCustomerOrgId: "22", name: "维修处", orgType: "department", hierarchyLevel: "department", fullPathIds: ["00", "12", "22", "10021012"], fullPathNames: ["00 中国核电", "12 三门核电", "22 综合管理部", "10021012 维修处"], isLeaf: true, logtoOrganizationId: "0qfb3b0c3tsl" },
+    { customerOrgId: "21", parentCustomerOrgId: "11", name: "战略规划部", orgType: "department", hierarchyLevel: "department", fullPathIds: ["00", "11", "21"], fullPathNames: ["00 中国核电", "11 中国核电总部", "21 战略规划部"], isLeaf: true, logtoOrganizationId: "lwpj59nwnocu" },
+    { customerOrgId: "23", parentCustomerOrgId: "11", name: "直属单位管理部", orgType: "department", hierarchyLevel: "department", fullPathIds: ["00", "11", "23"], fullPathNames: ["00 中国核电", "11 中国核电总部", "23 直属单位管理部"], isLeaf: false, logtoOrganizationId: "cdfraziu4zfh" },
+    { customerOrgId: "31", parentCustomerOrgId: "23", name: "安全质量处", orgType: "department", hierarchyLevel: "department", fullPathIds: ["00", "11", "23", "31"], fullPathNames: ["00 中国核电", "11 中国核电总部", "23 直属单位管理部", "31 安全质量处"], isLeaf: false, logtoOrganizationId: "dghg1albuuu3" },
+    { customerOrgId: "41", parentCustomerOrgId: "31", name: "核安全管理科", orgType: "department", hierarchyLevel: "department", fullPathIds: ["00", "11", "23", "31", "41"], fullPathNames: ["00 中国核电", "11 中国核电总部", "23 直属单位管理部", "31 安全质量处", "41 核安全管理科"], isLeaf: true, logtoOrganizationId: "y4ee1w3xprf3" },
+    { customerOrgId: "51", parentCustomerOrgId: "00", name: "虚拟机构", orgType: "virtual", hierarchyLevel: "virtual", fullPathIds: ["00", "51"], fullPathNames: ["00 中国核电", "51 虚拟机构"], isLeaf: true, logtoOrganizationId: "na3g0cliy295" },
+    { customerOrgId: "61", parentCustomerOrgId: "00", name: "党工团组织", orgType: "party_labor_union", hierarchyLevel: "party_labor_union", fullPathIds: ["00", "61"], fullPathNames: ["00 中国核电", "61 党工团组织"], isLeaf: true, logtoOrganizationId: "b1kralit71cj" },
   ];
+  const CUSTOMER_LEAF_TO_DEPT = { "10021010": "10021010", "1002101010": "10021010", "10021012": "10021012", "1002101020": "10021012" };
+  const customerLeafOrgId = "10021010";
+  function resolveDepartmentId(leafOrgId) { return CUSTOMER_LEAF_TO_DEPT[leafOrgId] || leafOrgId; }
+  const userOrganizationMemberships = [
+    { account: "zhangsan", employeeNo: "80001001", customerLeafOrgId: "10021010", departmentId: resolveDepartmentId("10021010"), organizationIds: ["jnrsf7p6wztd"], source: "customer_sync" },
+    { account: "lisi", employeeNo: "80001002", customerLeafOrgId: "10021010", departmentId: resolveDepartmentId("10021010"), organizationIds: ["jnrsf7p6wztd"], source: "customer_sync" },
+    { account: "wangqiang", employeeNo: "80001003", customerLeafOrgId: "10021012", departmentId: resolveDepartmentId("10021012"), organizationIds: ["0qfb3b0c3tsl"], source: "customer_sync" },
+    { account: "zhaomin", employeeNo: "80001004", customerLeafOrgId: "10021012", departmentId: resolveDepartmentId("10021012"), organizationIds: ["0qfb3b0c3tsl"], source: "customer_sync" },
+    { account: "chenchen", employeeNo: "80001005", customerLeafOrgId: "41", departmentId: resolveDepartmentId("41"), organizationIds: ["y4ee1w3xprf3"], source: "customer_sync" },
+    { account: "liuyang", employeeNo: "80001006", customerLeafOrgId: "41", departmentId: resolveDepartmentId("41"), organizationIds: ["y4ee1w3xprf3"], source: "customer_sync" },
+    { account: "sunlei", employeeNo: "80001007", customerLeafOrgId: "23", departmentId: resolveDepartmentId("23"), organizationIds: ["cdfraziu4zfh"], source: "customer_sync" },
+    { account: "heyan", employeeNo: "80001008", customerLeafOrgId: "12", departmentId: resolveDepartmentId("12"), organizationIds: ["iu9vpjj4gjxe"], source: "customer_sync" }
+  ];
+  // 资源授权底层仍保留 resourceId、Scope、组织角色等 Logto 映射字段；页面列表使用业务化名称展示。
+  // 用户通过组织成员关系继承资源权限，直接授权仍可追加权限。
+  const kbOrgRoleBindings = [
+    { id: "binding-org-22-editor", organizationRoleId: "kb-001-editor", subjectType: "organization", subjectId: "efxnxpek7dqd", subjectName: "综合管理部", customerOrgId: "22", fullPath: "00 中国核电 / 12 三门核电 / 22 综合管理部", resourceId: "kb-001", role: "editor", scopes: ["kb:read", "kb:write"] },
+    { id: "binding-org-10021010-viewer", organizationRoleId: "kb-001-viewer", subjectType: "organization", subjectId: "jnrsf7p6wztd", subjectName: "信息项目处", customerOrgId: "10021010", fullPath: "00 中国核电 / 12 三门核电 / 22 综合管理部 / 10021010 信息项目处", resourceId: "kb-001", role: "viewer", scopes: ["kb:read"] },
+  ];
+  const kbUserRoleBindings = [
+    { id: "binding-user-zhangsan-admin", organizationRoleId: "kb-001-admin", subjectType: "user", subjectId: "zhangsan", subjectName: "张三", employeeNo: "80001001", account: "zhangsan", resourceId: "kb-001", role: "admin", scopes: ["kb:read", "kb:write", "kb:admin"] },
+  ];
+  const KB_ROLE_LABEL = { admin: "管理员", editor: "编辑者", viewer: "查看者" };
+  const KB_SCOPE_LABEL = { "kb:read": "查看", "kb:write": "编辑", "kb:admin": "管理" };
+  let kbVisibility = "restricted";
 
-  // ——— Seed: users ———
-  let users = [
-    { id: "u1", name: "张伟", account: "zhangwei", email: "zhangwei@xinghe.com", phone: "13800001111", roleIds: ["r-admin"], positionId: "p8" },
-    { id: "u2", name: "李娜", account: "lina", email: "lina@xinghe.com", phone: "13800002222", roleIds: ["r-sub"], positionId: "p1" },
-    { id: "u3", name: "王强", account: "wangqiang", email: "wangqiang@xinghe.com", phone: "13800003333", roleIds: ["r-user"], positionId: "p3" },
-    { id: "u4", name: "赵敏", account: "zhaomin", email: "zhaomin@xinghe.com", phone: "13800004444", roleIds: ["r-ops", "r-user"], positionId: "p6" },
-    { id: "u5", name: "陈晨", account: "chenchen", email: "chenchen@xinghe.com", phone: "13900005555", roleIds: ["r-user"], positionId: "p7" },
-    { id: "u6", name: "刘洋", account: "liuyang", email: "liuyang@xinghe.com", phone: "13900006666", roleIds: ["r-user"], positionId: "p4" },
-    { id: "u7", name: "周芳", account: "zhoufang", email: "zhoufang@xinghe.com", phone: "13700007777", roleIds: ["r-ops"], positionId: "p9" },
-    { id: "u8", name: "吴磊", account: "wulei", email: "wulei@xinghe.com", phone: "13700008888", roleIds: ["r-user"], positionId: "p10" },
-    { id: "u9", name: "郑爽", account: "zhengshuang", email: "zhengshuang@xinghe.com", phone: "13600009999", roleIds: ["r-sub"], positionId: "p11" },
-    { id: "u10", name: "孙浩", account: "sunhao", email: "sunhao@xinghe.com", phone: "13600001010", roleIds: ["r-user"], positionId: "p2" },
-  ].map((user) => user);
+  // ——— Seed: users projected from CUSTOMER_ACCOUNT_LIST ———
+  const employeeByAccount = Object.fromEntries(CUSTOMER_ACCOUNT_LIST.map((employee) => [employee.EMAIL.split("@")[0], employee]));
+  const featureRoleByAccount = { zhangsan: ["r-admin"], lisi: ["r-user"], wangqiang: ["r-sub"], zhaomin: ["r-user"], chenchen: ["r-user"], liuyang: ["r-sub"], sunlei: ["r-user"], heyan: ["r-admin"] };
+  let users = CUSTOMER_ACCOUNT_LIST.map((employee) => ({
+    id: `u-${employee.EMPLOYEE_NO}`, employeeNo: employee.EMPLOYEE_NO, name: employee.EMPLOYEE_NAME,
+    account: employee.EMAIL.split("@")[0], email: employee.EMAIL, phone: employee.MOBILE,
+    roleIds: featureRoleByAccount[employee.EMAIL.split("@")[0]] || ["r-user"],
+    featureRoleIds: featureRoleByAccount[employee.EMAIL.split("@")[0]] || ["r-user"],
+    userCustomData: { customerEmployeeNo: employee.EMPLOYEE_NO, job: { code: employee.JOB_CODE, name: employee.JOB_NAME, level: employee.JOB_LEVEL }, appointments: [], directResourceRoleBindings: employee.EMPLOYEE_NO === "80001001" ? [{ resourceId: "kb-001", organizationRoleId: "kb-001-admin", scopes: ["kb:read", "kb:write", "kb:admin"] }] : [] },
+  }));
 
   // ——— State ———
   const state = {
     page: "org-users",
     selectedOrgId: null,
-    expanded: new Set(["c1", "s1", "d1", "d1-1", "s2"]),
+    expanded: new Set(["org-00", "org-11", "org-12", "org-22", "org-23", "org-31", "org-10021010", "org-10021012"]),
     userSearch: "",
     orgPickerQuery: "",
     selectedRoleId: "r-admin",
     kbTab: "perm",
     kbMemberSearch: "",
-    kbSingleMemberQuery: "",
-    kbSingleMemberAccount: null,
-    kbOrgSearch: "",
-    kbOrgId: null,
-    kbSelectedAccounts: new Set(),
+    kbAuthType: "organization",
+    kbAuthSubject: null,
+    kbAuthSearch: "",
     editingUserId: null,
     editingRoleId: null,
-    pickedPositionId: null,
-    batchOperation: null,
-    ctxNodeId: null,
     expandAll: false,
-    selectedUserIds: new Set(),
   };
-
-  function positionLabel(positionId) {
-    const node = positionId ? findNode(positionId) : null;
-    return node && node.type === "position" ? node.name : "未设置岗位";
-  }
 
   // ——— Org helpers ———
   function walk(nodes, fn, parent = null, path = []) {
@@ -2033,14 +1831,13 @@ table.data tr:hover td { background: #fafafa; }
     switch (parentType) {
       case "company": return ["subsidiary", "dept"];
       case "subsidiary": return ["dept"];
-      case "dept": return ["dept", "position"];
-      case "position": return [];
+      case "dept": return ["dept"];
       default: return [];
     }
   }
 
   function nextOrgId(type) {
-    const prefix = { company: "c", subsidiary: "s", dept: "d", position: "p" }[type] || "n";
+    const prefix = { company: "c", subsidiary: "s", dept: "d" }[type] || "n";
     let max = 0;
     walk(orgTree, (n) => {
       const m = String(n.id).match(new RegExp("^" + prefix + "(\\d+)$"));
@@ -2101,7 +1898,7 @@ table.data tr:hover td { background: #fafafa; }
       chain.push(hit);
       cur = hit.children || [];
     }
-    const fromDept = chain.filter((n) => n.type === "dept" || n.type === "position");
+    const fromDept = chain.filter((n) => n.type === "dept");
     if (fromDept.length) return fromDept.map((n) => n.name).join(" / ");
     return p.join(" / ");
   }
@@ -2121,22 +1918,16 @@ table.data tr:hover td { background: #fafafa; }
     return ids;
   }
 
-  function positionsUnder(id) {
-    return collectDescendantIds(id)
-      .map((id) => findNode(id))
-      .filter((n) => n && n.type === "position")
-      .map((n) => n.id);
-  }
-
   function usersUnderOrg(orgId) {
     if (!orgId) return users.slice();
-    const posIds = new Set(positionsUnder(orgId));
-    // If selected node itself is a position, include it
-    const node = findNode(orgId);
-    if (node && node.type === "position") posIds.add(orgId);
-    // Also: if selecting a dept with no positions? still empty ok
-    // For non-position, positionsUnder already includes descendant positions
-    return users.filter((u) => posIds.has(u.positionId));
+    const selected = findNode(orgId);
+    if (!selected) return [];
+    const allowedCodes = new Set([selected.code, ...collectDescendantIds(orgId).map((id) => findNode(id)?.code).filter(Boolean)]);
+    return users.filter((user) => {
+      const membership = userOrganizationMemberships.find((item) => item.account === user.account);
+      const organization = CUSTOMER_ORG_SOURCE_RECORDS.find((item) => item.logtoOrganizationId === membership?.organizationIds?.[0]);
+      return organization && allowedCodes.has(organization.customerOrgId);
+    });
   }
 
   function typeIcon(type) {
@@ -2144,7 +1935,6 @@ table.data tr:hover td { background: #fafafa; }
       case "company": return "🏢";
       case "subsidiary": return "🏢";
       case "dept": return "📁";
-      case "position": return "👤";
       default: return "•";
     }
   }
@@ -2246,7 +2036,6 @@ table.data tr:hover td { background: #fafafa; }
       picker = false,
       selectedId = state.selectedOrgId,
       onSelect,
-      onlyPickPosition = false,
       filterQuery = "",
     } = opts;
 
@@ -2256,7 +2045,8 @@ table.data tr:hover td { background: #fafafa; }
 
     function renderNodes(nodes, depth) {
       const frag = document.createDocumentFragment();
-      for (const n of nodes) {
+      const visibleNodes = nodes;
+      for (const n of visibleNodes) {
         const hasChildren = !!(n.children && n.children.length);
         const expanded = state.expanded.has(n.id) || state.expandAll;
         const row = document.createElement("div");
@@ -2265,14 +2055,7 @@ table.data tr:hover td { background: #fafafa; }
         const rowEl = document.createElement("div");
         rowEl.className = "tree-row";
         if (selectedId === n.id) rowEl.classList.add("active");
-        if (picker && onlyPickPosition) {
-          if (n.type === "position") rowEl.classList.add("selectable");
-          else rowEl.classList.add("disabled");
-          if (state.pickedPositionId === n.id) {
-            rowEl.classList.add("picked");
-            rowEl.classList.add("active");
-          }
-        }
+        if (selectedId === n.id) rowEl.classList.add("active");
 
         const toggle = document.createElement("button");
         toggle.type = "button";
@@ -2306,25 +2089,8 @@ table.data tr:hover td { background: #fafafa; }
         rowEl.appendChild(label);
         if (!picker) rowEl.appendChild(badge);
 
-        if (!picker) {
-          const more = document.createElement("button");
-          more.type = "button";
-          more.className = "tree-more";
-          more.textContent = "⋯";
-          more.title = "更多操作";
-          more.addEventListener("click", (e) => {
-            e.stopPropagation();
-            showCtxMenu(e, n);
-          });
-          rowEl.appendChild(more);
-        }
-
         rowEl.addEventListener("click", () => {
           if (picker) {
-            if (onlyPickPosition && n.type !== "position") {
-              toast("所属组织必须选择岗位节点", "error");
-              return;
-            }
             if (onSelect) onSelect(n);
             return;
           }
@@ -2334,9 +2100,8 @@ table.data tr:hover td { background: #fafafa; }
         });
 
         rowEl.addEventListener("contextmenu", (e) => {
-          if (picker) return;
           e.preventDefault();
-          showCtxMenu(e, n);
+          toast("组织架构来自客户同步，当前页面只读展示", "error");
         });
 
         row.appendChild(rowEl);
@@ -2360,167 +2125,7 @@ table.data tr:hover td { background: #fafafa; }
     renderOrgTree(document.getElementById("org-tree"));
   }
 
-  // Context menu
-  const ctxMenu = document.getElementById("ctx-menu");
-  function showCtxMenu(e, node) {
-    state.ctxNodeId = node.id;
-    const canAdd = allowedChildTypes(node.type).length > 0;
-    ctxMenu.querySelector('[data-action="org-add"]').style.display = canAdd ? "" : "none";
-    ctxMenu.classList.add("show");
-    const x = Math.min(e.clientX, window.innerWidth - 200);
-    const y = Math.min(e.clientY, window.innerHeight - 220);
-    ctxMenu.style.left = x + "px";
-    ctxMenu.style.top = y + "px";
-  }
-  function hideCtxMenu() {
-    ctxMenu.classList.remove("show");
-    state.ctxNodeId = null;
-  }
-  document.addEventListener("click", (e) => {
-    if (!ctxMenu.contains(e.target)) hideCtxMenu();
-  });
-  ctxMenu.querySelector('[data-action="org-add"]').addEventListener("click", () => {
-    const id = state.ctxNodeId;
-    hideCtxMenu();
-    if (id) openOrgCreate(id);
-  });
-  ctxMenu.querySelector('[data-action="org-edit"]').addEventListener("click", () => {
-    const id = state.ctxNodeId;
-    hideCtxMenu();
-    if (id) openOrgEdit(id);
-  });
-  ctxMenu.querySelector('[data-action="org-delete"]').addEventListener("click", () => {
-    const id = state.ctxNodeId;
-    hideCtxMenu();
-    if (id) deleteOrgNode(id);
-  });
-
-  function openOrgCreate(parentId) {
-    const parent = parentId ? findNode(parentId) : null;
-    const types = parent ? allowedChildTypes(parent.type) : ["company"];
-    if (!types.length) {
-      toast("该节点类型下不可再新增子节点", "error");
-      return;
-    }
-    document.getElementById("org-modal-title").textContent = "新增组织节点";
-    document.getElementById("of-mode").value = "create";
-    document.getElementById("of-parent-id").value = parentId || "";
-    document.getElementById("of-id").value = "";
-    document.getElementById("of-name").value = "";
-    document.getElementById("err-org-name").classList.remove("show");
-    document.getElementById("err-org-type").classList.remove("show");
-    document.getElementById("of-parent-row").style.display = parent ? "" : "none";
-    document.getElementById("of-parent-label").textContent = parent
-      ? (TYPE_LABEL[parent.type] + " · " + parent.name)
-      : "（根级）";
-    document.getElementById("of-type-row").style.display = "";
-    const sel = document.getElementById("of-type");
-    sel.innerHTML = types.map((t) => `<option value="${t}">${TYPE_LABEL[t]}</option>`).join("");
-    sel.value = types[0];
-    document.getElementById("of-hint").textContent = parent
-      ? "将作为「" + parent.name + "」的子节点；岗位不可再挂下级。"
-      : "将创建根级公司节点。";
-    openModal("modal-org");
-  }
-
-  function openOrgEdit(id) {
-    const node = findNode(id);
-    if (!node) return;
-    document.getElementById("org-modal-title").textContent = "编辑组织节点";
-    document.getElementById("of-mode").value = "edit";
-    document.getElementById("of-parent-id").value = "";
-    document.getElementById("of-id").value = id;
-    document.getElementById("of-name").value = node.name;
-    document.getElementById("err-org-name").classList.remove("show");
-    document.getElementById("of-parent-row").style.display = "none";
-    document.getElementById("of-type-row").style.display = "none";
-    document.getElementById("of-hint").textContent =
-      "类型：" + TYPE_LABEL[node.type] + "（本期不可改类型）";
-    openModal("modal-org");
-  }
-
-
-  function deleteOrgNode(id) {
-    const node = findNode(id);
-    if (!node) return;
-    const check = canDeleteNode(node);
-    if (!check.ok) {
-      toast(check.reason, "error");
-      return;
-    }
-    confirmDialog(
-      "删除组织节点",
-      "确认删除「" + escapeHtml(node.name) + "」（" + TYPE_LABEL[node.type] + "）？此操作不可恢复。",
-      () => {
-        removeNodeFromTree(id);
-        if (state.selectedOrgId === id) state.selectedOrgId = null;
-        persistOrgTree();
-        toast("已删除「" + node.name + "」");
-        renderMainTree();
-        renderUsers();
-      }
-    );
-  }
-
-  document.getElementById("btn-create-org").addEventListener("click", () => {
-    const parentId = state.selectedOrgId;
-    if (!parentId) {
-      const root = orgTree[0];
-      if (!root) {
-        openOrgCreate(null);
-        return;
-      }
-      toast("未选中节点，已默认挂到根公司下");
-      openOrgCreate(root.id);
-      return;
-    }
-    openOrgCreate(parentId);
-  });
-
-  document.getElementById("btn-save-org").addEventListener("click", () => {
-    const mode = document.getElementById("of-mode").value;
-    const name = document.getElementById("of-name").value.trim();
-    if (!name) {
-      document.getElementById("err-org-name").classList.add("show");
-      return;
-    }
-    document.getElementById("err-org-name").classList.remove("show");
-    if (mode === "edit") {
-      const node = findNode(document.getElementById("of-id").value);
-      if (!node) return;
-      node.name = name;
-      persistOrgTree();
-      closeModal("modal-org");
-      toast("已更新「" + name + "」");
-      renderMainTree();
-      renderUsers();
-      return;
-    }
-    const parentId = document.getElementById("of-parent-id").value || null;
-    const type = document.getElementById("of-type").value;
-    const allowed = parentId ? allowedChildTypes(findNode(parentId).type) : ["company"];
-    if (!allowed.includes(type)) {
-      document.getElementById("err-org-type").classList.add("show");
-      toast("不允许在该上级下创建此类型", "error");
-      return;
-    }
-    const node = { id: nextOrgId(type), name, type };
-    if (type !== "position") node.children = [];
-    if (!parentId) {
-      orgTree.push(node);
-    } else {
-      const parent = findNode(parentId);
-      if (!parent.children) parent.children = [];
-      parent.children.push(node);
-      state.expanded.add(parentId);
-    }
-    persistOrgTree();
-    state.selectedOrgId = node.id;
-    closeModal("modal-org");
-    toast("已新增「" + name + "」（" + TYPE_LABEL[type] + "）");
-    renderMainTree();
-    renderUsers();
-  });
+  // Customer organization tree is read-only; users and resources consume sync results.
 
   document.getElementById("btn-expand-all").addEventListener("click", () => {
     state.expandAll = !state.expandAll;
@@ -2543,6 +2148,20 @@ table.data tr:hover td { background: #fafafa; }
     renderUsers();
   });
 
+  document.getElementById("btn-refresh-org").addEventListener("click", () => {
+    const button = document.getElementById("btn-refresh-org");
+    const status = document.getElementById("org-sync-status");
+    button.disabled = true;
+    status.classList.add("is-refreshing");
+    status.textContent = "正在查询组织节点…";
+    setTimeout(() => {
+      button.disabled = false;
+      status.classList.remove("is-refreshing");
+      status.textContent = `最近查询：组织节点 · ${new Date().toLocaleString("zh-CN", { hour12: false })}`;
+      toast("已查询组织节点，页面仍为只读展示");
+    }, 450);
+  });
+
   // ——— Users table ———
   function roleTags(roleIds) {
     return roleIds
@@ -2555,6 +2174,11 @@ table.data tr:hover td { background: #fafafa; }
         return `<span class="tag ${cls}">${escapeHtml(r.name)}</span>`;
       })
       .join("");
+  }
+
+  function roleSelect(user) {
+    const options = roles.map((role) => `<option value="${escapeHtml(role.id)}" ${user.roleIds.includes(role.id) ? "selected" : ""}>${escapeHtml(role.name)}</option>`).join("");
+    return `<select class="user-role-select" aria-label="${escapeHtml(user.name)}功能角色" data-role-user="${escapeHtml(user.id)}">${options}</select>`;
   }
 
   function escapeHtml(s) {
@@ -2572,19 +2196,6 @@ table.data tr:hover td { background: #fafafa; }
       list = list.filter((u) => [u.name, u.account, u.email || "", u.phone || ""].some((value) => value.toLowerCase().includes(q)));
     }
     return list;
-  }
-
-  function renderSelectionState(list) {
-    const visibleIds = new Set(list.map((user) => user.id));
-    state.selectedUserIds.forEach((id) => { if (!visibleIds.has(id)) state.selectedUserIds.delete(id); });
-    const selectedCount = state.selectedUserIds.size;
-    const selectAll = document.getElementById("user-select-all");
-    selectAll.checked = list.length > 0 && list.every((user) => state.selectedUserIds.has(user.id));
-    selectAll.indeterminate = selectedCount > 0 && !selectAll.checked;
-    document.getElementById("user-selected-count").textContent = `已选 ${selectedCount} 人`;
-    const batchActionButton = document.getElementById("btn-batch-actions");
-    batchActionButton.disabled = selectedCount === 0;
-    document.querySelectorAll("[data-batch-action]").forEach((item) => { item.disabled = selectedCount === 0; });
   }
 
   function renderUsers() {
@@ -2608,613 +2219,352 @@ table.data tr:hover td { background: #fafafa; }
     tbody.innerHTML = "";
     empty.style.display = list.length ? "none" : "block";
     for (const u of list) {
-      const selected = state.selectedUserIds.has(u.id);
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td class="check-col"><input type="checkbox" aria-label="选择 ${escapeHtml(u.name)}" data-user-select="${u.id}" ${selected ? "checked" : ""} /></td>
-        <td><div class="user-primary">${escapeHtml(u.name)}</div><div class="user-secondary">${escapeHtml(u.id.toUpperCase())}</div></td>
-        <td><div>${escapeHtml(u.account)}</div><div class="user-secondary">${escapeHtml(u.email || u.phone || "未填写联系方式")}</div></td>
-        <td><div class="user-primary">${escapeHtml(positionLabel(u.positionId))}</div><div class="user-secondary path-cell" title="${escapeHtml(pathLabel(u.positionId))}">${escapeHtml(pathLabel(u.positionId))}</div></td>
-        <td><div class="role-stack">${roleTags(u.roleIds)}</div></td>
-        <td><span class="state-tag ${u.positionId && findNode(u.positionId)?.type === "position" ? "state-active" : "state-warning"}">${u.positionId && findNode(u.positionId)?.type === "position" ? "正常" : "待设置岗位"}</span></td>
-        <td class="actions-cell action-col"><button class="btn-link" type="button" data-edit="${u.id}">编辑</button><button class="btn-link danger" type="button" data-del="${u.id}">删除</button></td>`;
+        <td><div class="user-primary">${escapeHtml(u.name)}</div><div class="user-secondary">${escapeHtml(u.employeeNo || u.id.toUpperCase())}</div></td>
+        <td>${escapeHtml(u.account)}</td>
+        <td>${escapeHtml(u.email || "--")}</td>
+        <td>${escapeHtml(u.phone || "--")}</td>
+        <td>${roleSelect(u)}</td>
+        <td class="actions-cell"><button class="user-edit-trigger" type="button" data-edit-user="${escapeHtml(u.id)}">查看</button></td>`;
       tbody.appendChild(tr);
+      tr.querySelector("[data-role-user]").addEventListener("change", (event) => updateUserFeatureRole(u, event.target.value));
+      tr.querySelector("[data-edit-user]").addEventListener("click", () => openUserEdit(u.id));
     }
-    renderSelectionState(list);
-    tbody.querySelectorAll("[data-user-select]").forEach((checkbox) => checkbox.addEventListener("change", () => {
-      if (checkbox.checked) state.selectedUserIds.add(checkbox.dataset.userSelect); else state.selectedUserIds.delete(checkbox.dataset.userSelect);
-      renderUsers();
-    }));
-    tbody.querySelectorAll("[data-edit]").forEach((btn) => btn.addEventListener("click", () => openUserForm(btn.dataset.edit)));
-    tbody.querySelectorAll("[data-del]").forEach((btn) => btn.addEventListener("click", () => {
-      const u = users.find((x) => x.id === btn.dataset.del);
-      confirmDialog("删除用户", `确定删除用户 <strong>${escapeHtml(u.name)}</strong>（${escapeHtml(u.account)}）？此操作不可恢复。`, () => {
-        users = users.filter((x) => x.id !== u.id);
-        state.selectedUserIds.delete(u.id);
-        toast("已删除用户 " + u.name);
-        renderUsers(); renderMainTree();
-      });
-    }));
   }
-
-  document.getElementById("user-select-all").addEventListener("change", (event) => {
-    currentUserResults().forEach((user) => event.target.checked ? state.selectedUserIds.add(user.id) : state.selectedUserIds.delete(user.id));
-    renderUsers();
-  });
-
-  const batchActionMenu = document.getElementById("batch-action-menu");
-  const batchActionButton = document.getElementById("btn-batch-actions");
-  batchActionButton.addEventListener("click", (event) => {
-    if (batchActionButton.disabled) return;
-    event.stopPropagation();
-    const open = batchActionMenu.classList.toggle("open");
-    batchActionButton.setAttribute("aria-expanded", String(open));
-  });
-  document.addEventListener("click", (event) => {
-    if (!batchActionMenu.contains(event.target)) {
-      batchActionMenu.classList.remove("open");
-      batchActionButton.setAttribute("aria-expanded", "false");
-    }
-  });
-  document.querySelectorAll("[data-batch-action]").forEach((item) => item.addEventListener("click", () => {
-    if (item.disabled) return;
-    batchActionMenu.classList.remove("open");
-    batchActionButton.setAttribute("aria-expanded", "false");
-    if (item.dataset.batchAction === "grant") openBatchRoleOperation("grant");
-    if (item.dataset.batchAction === "revoke") openBatchRoleOperation("revoke");
-    if (item.dataset.batchAction === "transfer") openPositionMigration();
-  }));
-
-  document.getElementById("uf-org-search").addEventListener("input", (e) => {
-    state.orgPickerQuery = e.target.value || "";
-    renderOrgPicker();
-  });
 
   document.getElementById("user-search").addEventListener("input", (e) => {
     state.userSearch = e.target.value;
     renderUsers();
   });
 
-
-  function positionOptions(selectedId) {
-    const positions = [];
-    walk(orgTree, (node) => { if (node.type === "position") positions.push(node); });
-    return positions.map((node) => `<option value="${node.id}" ${node.id === selectedId ? "selected" : ""}>${escapeHtml(pathLabel(node.id))}</option>`).join("");
+  function userOrganizationRecord(user) {
+    const membership = userOrganizationMemberships.find((item) => item.account === user.account);
+    const organization = CUSTOMER_ORG_SOURCE_RECORDS.find((item) => item.logtoOrganizationId === membership?.organizationIds?.[0]);
+    return { membership, organization };
   }
 
-  function openPositionMigration() {
-    const selected = users.filter((user) => state.selectedUserIds.has(user.id));
-    if (!selected.length) return;
-    document.getElementById("migration-user-count").textContent = selected.length;
-    document.getElementById("migration-current-scope").textContent = state.selectedOrgId ? pathLabel(state.selectedOrgId) : "当前结果范围";
-    document.getElementById("migration-position-select").innerHTML = positionOptions(null);
-    document.getElementById("err-migration-position").classList.remove("show");
-    openModal("modal-position-migration");
+  function userOrganizationLabel(user) {
+    return userOrganizationRecord(user).organization?.name || "未同步";
   }
 
-  document.getElementById("btn-confirm-position-migration").addEventListener("click", () => {
-    const positionId = document.getElementById("migration-position-select").value;
-    if (!positionId || findNode(positionId)?.type !== "position") {
-      document.getElementById("err-migration-position").classList.add("show");
-      return;
-    }
-    const selected = users.filter((user) => state.selectedUserIds.has(user.id));
-    selected.forEach((user) => { user.positionId = positionId; });
-    state.selectedUserIds.clear();
-    closeModal("modal-position-migration");
-    toast(`已将 ${selected.length} 名用户转岗至${positionLabel(positionId)}`);
-    renderUsers(); renderMainTree();
-  });
-
-
-  function fillRoleCheckboxes(containerId, selected) {
-    const box = document.getElementById(containerId);
-    box.innerHTML = roles
-      .map(
-        (r) => `
-      <label class="checkbox">
-        <input type="checkbox" value="${r.id}" ${selected.includes(r.id) ? "checked" : ""} />
-        ${escapeHtml(r.name)}${r.preset ? "（预置）" : ""}
-      </label>`
-      )
-      .join("");
+  function userOrganizationPath(user) {
+    const record = userOrganizationRecord(user);
+    return record.organization?.fullPathNames?.join(" / ") || "客户侧组织路径待刷新";
   }
 
-  function renderOrgPicker() {
-    const el = document.getElementById("uf-org-picker");
-    const empty = document.getElementById("uf-org-empty");
-    renderOrgTree(el, {
-      picker: true,
-      onlyPickPosition: true,
-      selectedId: state.pickedPositionId,
-      filterQuery: state.orgPickerQuery || "",
-      onSelect: (n) => {
-        state.pickedPositionId = n.id;
-        const pathEl = document.getElementById("uf-picked-path");
-        pathEl.textContent = "已选岗位：" + pathLabel(n.id);
-        pathEl.classList.add("show");
-        document.getElementById("err-org").classList.remove("show");
-        renderOrgPicker();
-      },
-    });
-    if (empty) {
-      const q = (state.orgPickerQuery || "").trim();
-      const hasNodes = el.querySelector(".tree-node");
-      empty.style.display = q && !hasNodes ? "block" : "none";
-    }
+  // 用户所属组织由客户侧提供，只能刷新；其他用户资料和功能角色可由管理员编辑。
+  function openUserEdit(userId) {
+    const user = users.find((item) => item.id === userId);
+    if (!user) return;
+    document.getElementById("ue-id").value = user.id;
+    document.getElementById("ue-name").value = user.name;
+    document.getElementById("ue-account").value = user.account;
+    document.getElementById("ue-email").value = user.email || "";
+    document.getElementById("ue-phone").value = user.phone || "";
+    document.getElementById("err-ue-name").classList.remove("show");
+    document.getElementById("err-ue-account").classList.remove("show");
+    document.getElementById("err-ue-roles").classList.remove("show");
+    const record = userOrganizationRecord(user);
+    document.getElementById("ue-organization-info").textContent = record.organization?.fullPathNames?.join(" / ") || "客户侧组织待同步";
+    const employee = employeeByAccount[user.account];
+    document.getElementById("ue-job-info").textContent = employee ? `${employee.JOB_NAME || "未设置"} · ${employee.JOB_LEVEL || ""}` : "客户侧岗位待同步";
+    renderEditRoleOptions(user.roleIds);
+    openModal("modal-user-edit");
   }
 
-  function openUserForm(userId) {
-    state.editingUserId = userId || null;
-    const isEdit = !!userId;
-    document.getElementById("user-modal-title").textContent = isEdit ? "编辑用户" : "新建用户";
-    document.getElementById("uf-password-row").style.display = isEdit ? "none" : "flex";
-
-    ["err-name", "err-account", "err-password", "err-roles", "err-org"].forEach((id) =>
-      document.getElementById(id).classList.remove("show")
-    );
-
-    if (isEdit) {
-      const u = users.find((x) => x.id === userId);
-      document.getElementById("uf-id").value = u.id;
-      document.getElementById("uf-name").value = u.name;
-      document.getElementById("uf-account").value = u.account;
-      document.getElementById("uf-account").disabled = true;
-      document.getElementById("uf-password").value = "";
-      document.getElementById("uf-email").value = u.email || "";
-      document.getElementById("uf-phone").value = u.phone || "";
-      fillRoleCheckboxes("uf-roles", u.roleIds);
-      state.pickedPositionId = u.positionId;
-      const pathEl = document.getElementById("uf-picked-path");
-      pathEl.textContent = "已选岗位：" + pathLabel(u.positionId);
-      pathEl.classList.add("show");
-    } else {
-      document.getElementById("uf-id").value = "";
-      document.getElementById("uf-name").value = "";
-      document.getElementById("uf-account").value = "";
-      document.getElementById("uf-account").disabled = false;
-      document.getElementById("uf-password").value = "";
-      document.getElementById("uf-email").value = "";
-      document.getElementById("uf-phone").value = "";
-      fillRoleCheckboxes("uf-roles", ["r-user"]);
-      state.pickedPositionId = null;
-      document.getElementById("uf-picked-path").classList.remove("show");
-    }
-
-    // Ensure positions expanded in picker
-    walk(orgTree, (n) => {
-      if (n.children && n.children.length) state.expanded.add(n.id);
-    });
-    state.orgPickerQuery = "";
-    const orgSearch = document.getElementById("uf-org-search");
-    if (orgSearch) orgSearch.value = "";
-    renderOrgPicker();
-    openModal("modal-user");
+  function saveUserEdit() {
+    const user = users.find((item) => item.id === document.getElementById("ue-id").value);
+    if (!user) return;
+    const name = document.getElementById("ue-name").value.trim();
+    const account = document.getElementById("ue-account").value.trim();
+    const roleIds = [...document.querySelectorAll("#ue-roles input:checked")].map((input) => input.value);
+    document.getElementById("err-ue-name").classList.toggle("show", !name);
+    document.getElementById("err-ue-account").classList.toggle("show", !account);
+    document.getElementById("err-ue-roles").classList.toggle("show", !roleIds.length);
+    if (!name || !account || !roleIds.length) return;
+    const duplicate = users.some((item) => item.id !== user.id && item.account.toLowerCase() === account.toLowerCase());
+    if (duplicate) { toast("账号已存在，请更换账号", "error"); return; }
+    user.name = name;
+    user.account = account;
+    user.email = document.getElementById("ue-email").value.trim();
+    user.phone = document.getElementById("ue-phone").value.trim();
+    user.roleIds = roleIds;
+    user.featureRoleIds = roleIds;
+    syncFeatureRolesToLogto(user).then(() => toast(`已保存 ${user.name}，功能角色已同步到 Logto`)).catch((error) => toast(`Logto 功能角色同步失败：${error.message}`, "error"));
   }
 
-  document.getElementById("btn-create-user").addEventListener("click", () => openUserForm(null));
-
-  document.getElementById("btn-save-user").addEventListener("click", () => {
-    const name = document.getElementById("uf-name").value.trim();
-    const account = document.getElementById("uf-account").value.trim();
-    const password = document.getElementById("uf-password").value;
-    const email = document.getElementById("uf-email").value.trim();
-    const phone = document.getElementById("uf-phone").value.trim();
-    const roleIds = Array.from(document.querySelectorAll("#uf-roles input:checked")).map((i) => i.value);
-    const isEdit = !!state.editingUserId;
-
-    let ok = true;
-    const showErr = (id, cond) => {
-      document.getElementById(id).classList.toggle("show", cond);
-      if (cond) ok = false;
-    };
-    showErr("err-name", !name);
-    showErr("err-account", !account);
-    showErr("err-password", !isEdit && password.length < 6);
-    showErr("err-roles", roleIds.length === 0);
-
-    const pos = state.pickedPositionId ? findNode(state.pickedPositionId) : null;
-    showErr("err-org", !pos || pos.type !== "position");
-
-    if (!ok) return;
-
-    if (!isEdit && users.some((u) => u.account === account)) {
-      toast("账号已存在", "error");
-      return;
-    }
-
-    if (isEdit) {
-      const u = users.find((x) => x.id === state.editingUserId);
-      u.name = name;
-      u.email = email;
-      u.phone = phone;
-      u.roleIds = roleIds;
-      u.positionId = state.pickedPositionId;
-      toast("已保存用户 " + name);
-    } else {
-      users.push({
-        id: "u" + Date.now(),
-        name,
-        account,
-        email,
-        phone,
-        roleIds,
-        positionId: state.pickedPositionId,
-      });
-      toast("已创建用户 " + name);
-    }
-    closeModal("modal-user");
+  async function updateUserFeatureRole(user, roleId) {
+    const previous = [...user.roleIds];
+    user.roleIds = [roleId];
+    user.featureRoleIds = [roleId];
     renderUsers();
-    renderMainTree();
-  });
-
-  // ——— Batch user operations ———
-  function openBatchRoleOperation(operation) {
-    state.batchOperation = operation;
-    document.getElementById("batch-modal-title").textContent = operation === "grant" ? "批量赋予角色" : "批量回收角色";
-    const selected = selectedBatchUsers();
-    document.getElementById("batch-scope-text").innerHTML = `已选用户：<strong id="batch-selected-user-count">${selected.length} 人</strong>。本次操作仅修改这些用户的角色关系。`;
-    document.getElementById("btn-do-batch").style.display = operation === "grant" ? "" : "none";
-    document.getElementById("btn-do-batch-revoke").style.display = operation === "revoke" ? "" : "none";
-    fillRoleCheckboxes("batch-roles", []);
-    document.getElementById("err-batch-roles").classList.remove("show");
-    document.getElementById("err-batch-members").classList.toggle("show", !selected.length);
-    openModal("modal-batch");
-  }
-
-  function selectedBatchUsers() {
-    return users.filter((user) => state.selectedUserIds.has(user.id));
-  }
-
-  function selectedBatchRoles() {
-    return Array.from(document.querySelectorAll("#batch-roles input:checked")).map((input) => input.value);
-  }
-
-  function validateBatchOperation() {
-    const roleIds = selectedBatchRoles();
-    const members = selectedBatchUsers();
-    document.getElementById("err-batch-roles").classList.toggle("show", !roleIds.length);
-    document.getElementById("err-batch-members").classList.toggle("show", !members.length);
-    return { roleIds, members };
-  }
-
-  document.getElementById("btn-do-batch").addEventListener("click", () => {
-    const { roleIds, members } = validateBatchOperation();
-    if (!roleIds.length || !members.length) return;
-    let changed = 0;
-    members.forEach((user) => {
-      const before = user.roleIds.slice();
-      user.roleIds = Array.from(new Set([...user.roleIds, ...roleIds]));
-      if (user.roleIds.length !== before.length) changed++;
-    });
-    state.selectedUserIds.clear();
-    closeModal("modal-batch");
-    toast(`已为 ${changed} 名用户赋予角色`);
-    renderUsers();
-  });
-
-  document.getElementById("btn-do-batch-revoke").addEventListener("click", () => {
-    const { roleIds, members } = validateBatchOperation();
-    if (!roleIds.length || !members.length) return;
-    const invalidMembers = members.filter((user) => user.roleIds.filter((roleId) => !roleIds.includes(roleId)).length === 0);
-    if (invalidMembers.length) {
-      const names = invalidMembers.map((user) => escapeHtml(user.name)).join("、");
-      const message = `不能回收用户的全部角色，请先为 ${names} 保留至少一个角色`;
-      document.getElementById("err-batch-members").textContent = message;
-      document.getElementById("err-batch-members").classList.add("show");
-      toast(message, "error");
-      return;
+    try {
+      await syncFeatureRolesToLogto(user);
+      toast(`${user.name} 的角色已同步到 Logto`);
+    } catch (error) {
+      user.roleIds = previous;
+      user.featureRoleIds = previous;
+      renderUsers();
+      toast(`角色同步失败：${error.message}`, "error");
     }
-    let changed = 0;
-    members.forEach((user) => {
-      const before = user.roleIds.length;
-      user.roleIds = user.roleIds.filter((roleId) => !roleIds.includes(roleId));
-      if (user.roleIds.length !== before) changed++;
-    });
-    state.selectedUserIds.clear();
-    closeModal("modal-batch");
-    toast(`已为 ${changed} 名用户回收角色`);
-    renderUsers();
-  });
-
-  // ——— Knowledge base instance ACL demo ———
-  const KB_ROLE_LABEL = { owner: "所有者", editor: "编辑者", viewer: "使用者" };
-
-  function setKbTab(tab) {
-    state.kbTab = tab;
-    document.querySelectorAll(".kb-tab").forEach((b) => {
-      b.classList.toggle("active", b.dataset.kbTab === tab);
-    });
-    document.getElementById("kb-panel-basic").classList.toggle("active", tab === "basic");
-    document.getElementById("kb-panel-perm").classList.toggle("active", tab === "perm");
   }
 
-  document.getElementById("kb-tabs").addEventListener("click", (e) => {
-    const btn = e.target.closest(".kb-tab");
-    if (!btn) return;
-    setKbTab(btn.dataset.kbTab);
-  });
+  async function syncFeatureRolesToLogto(user) {
+    const response = await pocFetch(`/api/poc/users/${encodeURIComponent(user.account)}/feature-roles`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ featureRoleIds: user.featureRoleIds }) });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.error || "请求失败");
+    closeModal("modal-user-edit");
+    renderUsers();
+  }
 
-  document.querySelectorAll('input[name="kb-vis"]').forEach((radio) => {
-    radio.addEventListener("change", () => {
-      if (radio.checked) {
-        kbVisibility = radio.value;
-        toast(kbVisibility === "public" ? "已设为公开访问" : "已设为受限访问");
-      }
-    });
-  });
+  document.getElementById("btn-save-user-edit").addEventListener("click", saveUserEdit);
 
-  document.getElementById("kb-member-search").addEventListener("input", (e) => {
-    state.kbMemberSearch = e.target.value.trim().toLowerCase();
-    renderKbMembers();
-  });
+  // ——— Knowledge base resource authorization demo ———
+  const userOrganizationIds = new Map(userOrganizationMemberships.map((membership) => [membership.account, new Set(membership.organizationIds)]));
+
+  function getUserDirectKbScopes(account, resourceId) {
+    const user = users.find((item) => item.account === account);
+    return (user?.userCustomData?.directResourceRoleBindings || [])
+      .filter((binding) => binding.resourceId === resourceId)
+      .flatMap((binding) => binding.scopes || []);
+  }
+
+  function getEffectiveKbScopes(account, resourceId) {
+    if (kbVisibility === "public") return ["查看", "编辑", "管理"];
+    return Array.from(new Set([
+      ...getOrganizationInheritedKbScopes(account, resourceId),
+      ...getUserDirectKbScopes(account, resourceId),
+    ].map((scope) => KB_SCOPE_LABEL[scope] || scope)));
+  }
+
+  function getBindingDisplayName(binding) {
+    return binding.subjectType === "organization" ? binding.fullPath : `${binding.subjectName}（${binding.account}）`;
+  }
+
+  function getBindingMemberLabel(binding) {
+    return binding.subjectName;
+  }
+
+  function getBindingOrganizationInfo(binding) {
+    if (binding.subjectType === "organization") return { name: binding.subjectName, path: binding.fullPath, customerOrgId: binding.customerOrgId };
+    const user = users.find((item) => item.account === binding.account);
+    const record = user ? userOrganizationRecord(user) : {};
+    return { name: record.organization?.name || "未同步", path: record.organization?.fullPathNames?.join(" / ") || "组织路径待同步", customerOrgId: record.organization?.customerOrgId || "" };
+  }
+
+  function getBindingMemberLabel(binding) {
+    return binding.subjectType === "organization" ? binding.subjectName : `${binding.subjectName}（${binding.account}）`;
+  }
 
   function renderKbMembers() {
     const tbody = document.getElementById("kb-member-tbody");
-    const q = state.kbMemberSearch || "";
-    const list = kbMembers.filter((m) => {
-      if (!q) return true;
-      return m.account.toLowerCase().includes(q) || m.name.toLowerCase().includes(q);
-    });
-    // Keep owner first
-    list.sort((a, b) => (a.role === "owner" ? -1 : b.role === "owner" ? 1 : 0));
-    tbody.innerHTML = list
-      .map((m) => {
-        let roleCell;
-        if (m.role === "owner") {
-          roleCell = `<span class="owner-badge">所有者</span>`;
-        } else {
-          roleCell = `<select class="input input-sm kb-role-select" data-account="${escapeHtml(m.account)}">
-            <option value="editor" ${m.role === "editor" ? "selected" : ""}>编辑者</option>
-            <option value="viewer" ${m.role === "viewer" ? "selected" : ""}>使用者</option>
-          </select>`;
-        }
-        const action =
-          m.role === "owner"
-            ? "—"
-            : `<button class="link-danger" type="button" data-remove="${escapeHtml(m.account)}">移除</button>`;
-        return `<tr>
-          <td>${escapeHtml(m.account)}</td>
-          <td>${escapeHtml(m.name)}</td>
-          <td>${roleCell}</td>
-          <td>${action}</td>
-        </tr>`;
-      })
-      .join("");
-
-    tbody.querySelectorAll(".kb-role-select").forEach((sel) => {
-      sel.addEventListener("change", () => {
-        const m = kbMembers.find((x) => x.account === sel.dataset.account);
-        if (m && m.role !== "owner") {
-          m.role = sel.value;
-          toast(`已将 ${m.name} 设为${KB_ROLE_LABEL[m.role]}`);
-        }
-      });
-    });
-    tbody.querySelectorAll("[data-remove]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const account = btn.getAttribute("data-remove");
-        const m = kbMembers.find((x) => x.account === account);
-        if (!m || m.role === "owner") return;
-        confirmDialog(
-          "移除成员",
-          `确定将 <strong>${escapeHtml(m.name)}</strong>（${escapeHtml(m.account)}）从本知识库成员中移除？`,
-          () => {
-            kbMembers = kbMembers.filter((x) => x.account !== account);
-            toast("已移除成员 " + m.name);
-            renderKbMembers();
-          }
-        );
-      });
-    });
+    const q = (state.kbMemberSearch || "").toLowerCase();
+    const list = [...kbOrgRoleBindings, ...kbUserRoleBindings].filter((binding) => !q || [getBindingMemberLabel(binding), binding.fullPath || "", binding.account || "", KB_ROLE_LABEL[binding.role]].some((value) => String(value).toLowerCase().includes(q)));
+    tbody.innerHTML = list.map((binding) => {
+      const info = getBindingOrganizationInfo(binding);
+      const memberDetails = binding.subjectType === "organization"
+        ? `<div class="user-primary"><span class="member-icon org-icon" aria-hidden="true">▣</span>${escapeHtml(binding.subjectName)}</div>`
+        : `<div class="user-primary"><span class="member-icon user-icon" aria-hidden="true">●</span>${escapeHtml(binding.subjectName)}</div><div class="user-secondary">${escapeHtml(binding.account)}</div>`;
+      const organizationDetails = `<div class="user-primary">${escapeHtml(info.name)}</div><div class="user-secondary path-cell" title="${escapeHtml(info.path)}">${escapeHtml(info.path)}</div>`;
+      const roleSelect = `<select class="kb-role-select" aria-label="${escapeHtml(binding.subjectName)}的知识库角色" data-binding-role="${escapeHtml(binding.id)}">${Object.entries(KB_ROLE_LABEL).map(([value, label]) => `<option value="${value}" ${binding.role === value ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>`;
+      return `<tr><td>${memberDetails}</td><td>${organizationDetails}</td><td>${roleSelect}</td><td><button class="link-danger" type="button" data-remove-binding="${escapeHtml(binding.id)}">移除</button></td></tr>`;
+    }).join("");
+    tbody.querySelectorAll("[data-binding-role]").forEach((select) => select.addEventListener("change", (event) => updateKbBindingRole(event.target.dataset.bindingRole, event.target.value)));
+    tbody.querySelectorAll("[data-remove-binding]").forEach((button) => button.addEventListener("click", () => { const id = button.dataset.removeBinding; confirmDialog("移除授权", "确认移除该成员或组织的知识库授权？", () => { removeKbBinding(id); }); }));
   }
 
-  function kbUsersUnderOrg(orgId) {
-    const positionIds = new Set(positionsUnder(orgId));
-    return kbCandidateUsers.filter((candidate) => {
-      const user = users.find((item) => item.account.toLowerCase() === candidate.account.toLowerCase());
-      return user && positionIds.has(user.positionId);
-    });
+  function renderKbEffectiveScopes() {}
+
+  function renderKbVisibility() {
+    const notice = document.getElementById("kb-visibility-notice");
+    const publicAccess = kbVisibility === "public";
+    notice.classList.toggle("restricted", !publicAccess);
+    notice.textContent = publicAccess ? "当前为公开访问，所有平台成员均可访问，访问时不校验资源权限。" : "当前为受限访问，访问知识库时会校验成员的资源权限。";
   }
 
-  function getKbSelectableUsers() {
-    if (!state.kbOrgId) return [];
-    const scopedUsers = kbUsersUnderOrg(state.kbOrgId);
-    const memberAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
-    return scopedUsers.filter((candidate) => !memberAccounts.has(candidate.account.toLowerCase()));
+  function renderKbAuthPicker() {
+    const picker = document.getElementById("kb-auth-picker");
+    const query = (state.kbAuthSearch || "").trim().toLowerCase();
+    picker.innerHTML = "";
+    if (!query) return;
+    const orgMatches = CUSTOMER_ORG_SOURCE_RECORDS.filter((org) => [org.name, org.customerOrgId, org.fullPathNames.join(" ")].some((value) => value.toLowerCase().includes(query)));
+    const userMatches = users.filter((user) => [user.name, user.account, user.email, user.employeeNo].some((value) => String(value || "").toLowerCase().includes(query)));
+    const orgHtml = orgMatches.map((org) => `<button class="kb-auth-user" type="button" data-auth-org="${escapeHtml(org.logtoOrganizationId)}"><strong>▣ ${escapeHtml(org.name)}</strong><span>${escapeHtml(org.fullPathNames.join(" / "))}</span></button>`).join("");
+    const userHtml = userMatches.map((user) => `<button class="kb-auth-user" type="button" data-auth-user="${escapeHtml(user.account)}"><strong>● ${escapeHtml(user.name)}</strong><span>${escapeHtml(user.account)} · ${escapeHtml(user.email)}</span></button>`).join("");
+    picker.innerHTML = orgHtml + userHtml || `<div class="empty-state">没有匹配的成员或组织节点</div>`;
+    picker.querySelectorAll("[data-auth-org]").forEach((button) => button.addEventListener("click", () => { const org = CUSTOMER_ORG_SOURCE_RECORDS.find((item) => item.logtoOrganizationId === button.dataset.authOrg); state.kbAuthSubject = { id: org.logtoOrganizationId, name: org.name, type: "organization" }; renderKbAuthPicker(); }));
+    picker.querySelectorAll("[data-auth-user]").forEach((button) => button.addEventListener("click", () => { const user = users.find((item) => item.account === button.dataset.authUser); state.kbAuthSubject = { id: user.account, name: user.name, type: "user" }; renderKbAuthPicker(); }));
   }
 
-  function renderKbOrgPicker() {
-    renderOrgTree(document.getElementById("kb-org-picker"), {
-      picker: true,
-      selectedId: state.kbOrgId,
-      filterQuery: state.kbOrgSearch,
-      onSelect: (node) => {
-        state.kbOrgId = node.id;
-        renderKbOrgPicker();
-        renderKbMemberPicker();
-      },
-    });
+  function openKbMemberPicker() { state.kbAuthSubject = null; state.kbAuthSearch = ""; document.getElementById("kb-auth-search").value = ""; document.getElementById("kb-auth-role").value = "editor"; document.getElementById("err-kb-auth").classList.remove("show"); renderKbAuthPicker(); openModal("modal-kb-member-picker"); }
+  async function syncOrganizationResourceBindingsToLogto(subjectId) {
+    const bindings = kbOrgRoleBindings.filter((binding) => binding.subjectId === subjectId).map((binding) => ({ resourceId: binding.resourceId, organizationRoleId: binding.organizationRoleId, role: binding.role, scopes: binding.scopes }));
+    const response = await pocFetch(`/api/poc/organizations/${encodeURIComponent(subjectId)}/resource-bindings`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ resourceRoleBindings: bindings }) });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.error || "请求失败");
   }
 
-  function renderKbMemberPicker() {
-    const picker = document.getElementById("kb-member-picker");
-    const empty = document.getElementById("kb-member-picker-empty");
-    const resultCount = document.getElementById("kb-result-count");
-    const selectedCount = document.getElementById("kb-selected-count");
-    const selectAll = document.getElementById("kb-select-all");
-    const list = getKbSelectableUsers();
-    const listAccounts = new Set(list.map((candidate) => candidate.account.toLowerCase()));
-
-    state.kbSelectedAccounts.forEach((account) => {
-      if (!listAccounts.has(account.toLowerCase())) state.kbSelectedAccounts.delete(account);
-    });
-    picker.innerHTML = list.length ? list.map((candidate) => {
-      const user = users.find((item) => item.account.toLowerCase() === candidate.account.toLowerCase());
-      const path = user ? pathLabel(user.positionId) : "";
-      const checked = state.kbSelectedAccounts.has(candidate.account.toLowerCase());
-      return `<label class="kb-member-option">
-        <input type="checkbox" data-kb-account="${escapeHtml(candidate.account.toLowerCase())}" ${checked ? "checked" : ""} />
-        <span class="member-main"><span class="member-name">${escapeHtml(candidate.name)}</span><span class="member-meta">${escapeHtml(candidate.account)} · ${escapeHtml(candidate.email)}</span></span>
-        <span class="member-org">${escapeHtml(path)}</span>
-      </label>`;
-    }).join("") : "";
-    empty.textContent = state.kbOrgId ? "当前组织筛选下没有可添加用户" : "请先选择一个组织节点";
-    empty.style.display = list.length ? "none" : "block";
-    resultCount.textContent = `${list.length} 人`;
-    selectedCount.textContent = `已选 ${state.kbSelectedAccounts.size} 人`;
-    selectAll.checked = list.length > 0 && list.every((candidate) => state.kbSelectedAccounts.has(candidate.account.toLowerCase()));
-    selectAll.indeterminate = list.some((candidate) => state.kbSelectedAccounts.has(candidate.account.toLowerCase())) && !selectAll.checked;
-
-    picker.querySelectorAll("[data-kb-account]").forEach((checkbox) => {
-      checkbox.addEventListener("change", () => {
-        const account = checkbox.dataset.kbAccount;
-        if (checkbox.checked) state.kbSelectedAccounts.add(account);
-        else state.kbSelectedAccounts.delete(account);
-        renderKbMemberPicker();
-      });
-    });
+  async function syncDirectResourceBindingsToLogto(user) {
+    const response = await pocFetch(`/api/poc/users/${encodeURIComponent(user.account)}/resource-bindings`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ directResourceRoleBindings: kbUserRoleBindings.filter(binding => binding.account === user.account).map(binding => ({ resourceId: binding.resourceId, role: binding.role })) }) });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.error || "请求失败");
   }
 
-  function renderKbSingleMemberPicker() {
-    const picker = document.getElementById("kb-single-member-picker");
-    const empty = document.getElementById("kb-single-member-empty");
-    const query = (state.kbSingleMemberQuery || "").trim().toLowerCase();
-    if (!query) {
-      picker.innerHTML = "";
-      empty.textContent = "请输入搜索关键词";
-      empty.style.display = "block";
+  function scopesForKbRole(role) {
+    return role === "admin" ? ["kb:read", "kb:write", "kb:admin"] : role === "editor" ? ["kb:read", "kb:write"] : ["kb:read"];
+  }
+
+  function updateKbBindingRole(id, role) {
+    const orgBinding = kbOrgRoleBindings.find((item) => item.id === id);
+    if (orgBinding) {
+      orgBinding.role = role;
+      orgBinding.organizationRoleId = `kb-001-${role}`;
+      orgBinding.scopes = scopesForKbRole(role);
+      renderKbMembers();
+      renderKbEffectiveScopes();
+      syncOrganizationResourceBindingsToLogto(orgBinding.subjectId).then(() => toast(`组织角色已改为${KB_ROLE_LABEL[role]}，已保存到业务系统`)).catch((error) => toast(`本地已更新，但 业务系统保存失败：${error.message}`, "error"));
       return;
     }
-    const memberAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
-    const list = query
-      ? kbCandidateUsers.filter((candidate) => {
-          if (memberAccounts.has(candidate.account.toLowerCase())) return false;
-          return [candidate.account, candidate.name, candidate.email].some((value) => value.toLowerCase().includes(query));
-        })
-      : [];
-    picker.innerHTML = list
-      .map((candidate) => {
-        const user = users.find((item) => item.account.toLowerCase() === candidate.account.toLowerCase());
-        const checked = state.kbSingleMemberAccount === candidate.account.toLowerCase();
-        return `<label class="kb-member-option">
-          <input type="radio" name="kb-single-member" value="${escapeHtml(candidate.account.toLowerCase())}" ${checked ? "checked" : ""} />
-          <span class="member-main"><span class="member-name">${escapeHtml(candidate.name)}</span><span class="member-meta">${escapeHtml(candidate.account)} · ${escapeHtml(candidate.email)}</span></span>
-          <span class="member-org">${escapeHtml(user ? pathLabel(user.positionId) : "")}</span>
-        </label>`;
-      })
-      .join("");
-    empty.style.display = list.length ? "none" : "block";
-    picker.querySelectorAll('[name="kb-single-member"]').forEach((radio) => {
-      radio.addEventListener("change", () => {
-        state.kbSingleMemberAccount = radio.value;
-        document.getElementById("err-kb-single-member").classList.remove("show");
-      });
-    });
-  }
-
-  function openKbSingleMemberPicker() {
-    state.kbSingleMemberQuery = "";
-    state.kbSingleMemberAccount = null;
-    document.getElementById("kb-single-member-query").value = "";
-    document.getElementById("kb-single-member-role").value = "editor";
-    document.getElementById("err-kb-single-member").classList.remove("show");
-    renderKbSingleMemberPicker();
-    openModal("modal-kb-single-member");
-  }
-
-  function addSingleKbMember() {
-    const account = state.kbSingleMemberAccount;
-    const role = document.getElementById("kb-single-member-role").value;
-    if (!account) {
-      document.getElementById("err-kb-single-member").classList.add("show");
-      return;
+    const userBinding = kbUserRoleBindings.find((item) => item.id === id);
+    if (!userBinding) return;
+    userBinding.role = role;
+    userBinding.organizationRoleId = `kb-001-${role}`;
+    userBinding.scopes = scopesForKbRole(role);
+    const user = users.find((item) => item.account === userBinding.account);
+    if (user) {
+      user.userCustomData = user.userCustomData || {};
+      user.userCustomData.directResourceRoleBindings = kbUserRoleBindings.filter((item) => item.account === user.account).map((item) => ({ resourceId: item.resourceId, organizationRoleId: item.organizationRoleId, role: item.role, scopes: item.scopes }));
     }
-    const candidate = kbCandidateUsers.find((item) => item.account.toLowerCase() === account);
-    if (!candidate) return;
-    kbMembers.push({ account: candidate.account, name: candidate.name, role });
-    closeModal("modal-kb-single-member");
-    toast(`已按用户添加 1 名成员为${KB_ROLE_LABEL[role]}`);
     renderKbMembers();
+    renderKbEffectiveScopes();
+    if (user) syncDirectResourceBindingsToLogto(user).then(() => toast(`${user.name} 的资源角色已改为${KB_ROLE_LABEL[role]}，已保存到业务系统`)).catch((error) => toast(`本地已更新，但 业务系统保存失败：${error.message}`, "error"));
   }
 
-  function openKbOrgMemberPicker() {
-    state.kbOrgSearch = "";
-    state.kbOrgId = null;
-    state.kbSelectedAccounts = new Set();
-    document.getElementById("kb-org-search").value = "";
-    document.getElementById("kb-member-role").value = "editor";
-    renderKbOrgPicker();
-    renderKbMemberPicker();
-    openModal("modal-kb-members");
-  }
-
-  function addSelectedKbMembers() {
-    const selectedAccounts = state.kbSelectedAccounts;
-    const role = document.getElementById("kb-member-role").value;
-    if (!selectedAccounts.size) {
-      toast("请至少选择一名用户", "error");
+  function removeKbBinding(id) {
+    const orgBinding = kbOrgRoleBindings.find((item) => item.id === id);
+    if (orgBinding) {
+      kbOrgRoleBindings.splice(kbOrgRoleBindings.indexOf(orgBinding), 1);
+      renderKbMembers();
+      renderKbEffectiveScopes();
+      syncOrganizationResourceBindingsToLogto(orgBinding.subjectId).then(() => toast("已移除授权，已保存到业务系统 Organization")).catch((error) => toast(`本地已移除，但 业务系统保存失败：${error.message}`, "error"));
       return;
     }
-    const existingAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
-    let added = 0;
-    selectedAccounts.forEach((account) => {
-      const candidate = kbCandidateUsers.find((item) => item.account.toLowerCase() === account);
-      if (candidate && !existingAccounts.has(account)) {
-        kbMembers.push({ account: candidate.account, name: candidate.name, role });
-        existingAccounts.add(account);
-        added++;
+    const userBinding = kbUserRoleBindings.find((item) => item.id === id);
+    if (!userBinding) return;
+    kbUserRoleBindings.splice(kbUserRoleBindings.indexOf(userBinding), 1);
+    const user = users.find((item) => item.account === userBinding.account);
+    if (user) {
+      user.userCustomData = user.userCustomData || {};
+      user.userCustomData.directResourceRoleBindings = (user.userCustomData.directResourceRoleBindings || []).filter((item) => !(item.resourceId === userBinding.resourceId && String(item.organizationRoleId) === String(userBinding.organizationRoleId)));
+    }
+    renderKbMembers();
+    renderKbEffectiveScopes();
+    if (user) syncDirectResourceBindingsToLogto(user).then(() => toast("已移除授权，已保存到业务系统 用户资料")).catch((error) => toast(`本地已移除，但 业务系统保存失败：${error.message}`, "error"));
+    else toast("已移除授权");
+  }
+
+  function addKbAuthorization() {
+    if (!state.kbAuthSubject) { document.getElementById("err-kb-auth").classList.add("show"); return; }
+    const role = document.getElementById("kb-auth-role").value;
+    const scopes = role === "admin" ? ["kb:read", "kb:write", "kb:admin"] : role === "editor" ? ["kb:read", "kb:write"] : ["kb:read"];
+    const binding = state.kbAuthSubject.type === "organization"
+      ? (() => {
+        const selectedNode = findNode(state.kbAuthSubject.id);
+        const selectedPath = pathOf(state.kbAuthSubject.id);
+        return { id: `binding-organization-${Date.now()}`, organizationRoleId: `kb-001-${role}`, subjectType: "organization", subjectId: selectedNode?.id || state.kbAuthSubject.id, subjectName: state.kbAuthSubject.name, customerOrgId: selectedNode?.code || "", fullPath: selectedPath.join(" / "), resourceId: "kb-001", role, scopes };
+      })()
+      : { id: `binding-user-${Date.now()}`, organizationRoleId: `kb-001-${role}`, subjectType: "user", subjectId: state.kbAuthSubject.id, subjectName: state.kbAuthSubject.name, employeeNo: users.find((user) => user.account === state.kbAuthSubject.id)?.employeeNo || "", account: state.kbAuthSubject.id, resourceId: "kb-001", role, scopes };
+    (binding.subjectType === "organization" ? kbOrgRoleBindings : kbUserRoleBindings).push(binding); closeModal("modal-kb-member-picker"); renderKbMembers(); renderKbEffectiveScopes();
+    if (binding.subjectType === "organization") syncOrganizationResourceBindingsToLogto(binding.subjectId).then(() => toast("组织资源授权已保存到业务系统")).catch((error) => toast(`本地已创建，但组织资源角色同步失败：${error.message}`, "error"));
+    if (binding.subjectType === "user") {
+      const user = users.find((item) => item.account === binding.account);
+      if (user) {
+        user.userCustomData = user.userCustomData || {};
+        user.userCustomData.directResourceRoleBindings = [...(user.userCustomData.directResourceRoleBindings || []), { resourceId: binding.resourceId, organizationRoleId: binding.organizationRoleId, scopes: binding.scopes }];
+        syncDirectResourceBindingsToLogto(user).then(() => toast("已创建授权，已保存到业务系统 用户资料")).catch((error) => toast(`本地已创建，但 业务系统保存失败：${error.message}`, "error"));
       }
-    });
-    closeModal("modal-kb-members");
-    toast(`已按用户添加 ${added} 名成员为${KB_ROLE_LABEL[role]}`);
-    renderKbMembers();
+    } else toast("已创建资源级授权绑定");
   }
 
-  function renderKbPerm() {
-    document.querySelectorAll('input[name="kb-vis"]').forEach((r) => {
-      r.checked = r.value === kbVisibility;
+  function setKbTab(tab) { state.kbTab = tab; document.querySelectorAll(".kb-tab").forEach((b) => b.classList.toggle("active", b.dataset.kbTab === tab)); document.getElementById("kb-panel-basic").classList.toggle("active", tab === "basic"); document.getElementById("kb-panel-perm").classList.toggle("active", tab === "perm"); }
+  document.getElementById("kb-tabs").addEventListener("click", (e) => { const btn = e.target.closest(".kb-tab"); if (btn) setKbTab(btn.dataset.kbTab); });
+  document.querySelectorAll('input[name="kb-vis"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      if (!radio.checked) return;
+      kbVisibility = radio.value;
+      pocFetch('/api/poc/resources/kb-001/visibility', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ visibility: kbVisibility }) }).then(async response => { if (!response.ok) throw new Error('保存失败'); }).catch(error => toast(error.message, 'error'));
+      renderKbVisibility();
+      renderKbEffectiveScopes();
+      toast(kbVisibility === "public" ? "已设为公开访问，访问时不校验资源权限" : "已设为受限访问，访问时校验资源权限");
     });
-    setKbTab(state.kbTab || "perm");
-    renderKbMembers();
+  });
+
+  document.getElementById("kb-member-search").addEventListener("input", (e) => { state.kbMemberSearch = e.target.value.trim(); renderKbMembers(); });
+  document.getElementById("btn-add-kb-member").addEventListener("click", openKbMemberPicker);
+  document.getElementById("kb-auth-search").addEventListener("input", (e) => { state.kbAuthSearch = e.target.value; renderKbAuthPicker(); });
+  document.getElementById("btn-confirm-kb-member").addEventListener("click", addKbAuthorization);
+  function renderKbPerm() { setKbTab(state.kbTab || "perm"); renderKbVisibility(); renderKbMembers(); renderKbEffectiveScopes(); }
+
+  const STATIC_DEMO = location.hostname.endsWith('.github.io') || location.protocol === 'file:';
+  const DEMO_STORAGE_KEY = 'org-admin-poc-pages-v2';
+  function persistStaticDemo() {
+    localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify({ users, kbOrgRoleBindings, kbUserRoleBindings, kbVisibility }));
   }
-
-  document.getElementById("btn-add-kb-member-single").addEventListener("click", openKbSingleMemberPicker);
-  document.getElementById("btn-add-kb-member-org").addEventListener("click", openKbOrgMemberPicker);
-
-  document.getElementById("kb-single-member-query").addEventListener("input", (e) => {
-    state.kbSingleMemberQuery = e.target.value;
-    renderKbSingleMemberPicker();
-  });
-
-  document.getElementById("kb-org-search").addEventListener("input", (e) => {
-    state.kbOrgSearch = e.target.value.trim();
-    renderKbOrgPicker();
-  });
-
-  document.getElementById("kb-clear-org").addEventListener("click", () => {
-    state.kbOrgId = null;
-    renderKbOrgPicker();
-    renderKbMemberPicker();
-  });
-
-  document.getElementById("kb-select-all").addEventListener("change", (e) => {
-    const list = getKbSelectableUsers();
-    list.forEach((candidate) => {
-      const account = candidate.account.toLowerCase();
-      if (e.target.checked) state.kbSelectedAccounts.add(account);
-      else state.kbSelectedAccounts.delete(account);
-    });
-    renderKbMemberPicker();
-  });
-
-  document.getElementById("btn-confirm-kb-single-member").addEventListener("click", addSingleKbMember);
-  document.getElementById("btn-confirm-kb-members").addEventListener("click", addSelectedKbMembers);
+  async function pocFetch(url, options) {
+    if (!STATIC_DEMO) return fetch(url, options);
+    persistStaticDemo();
+    return { ok: true, json: async () => ({ ok: true }) };
+  }
+  async function hydrateFromLogto() {
+    if (STATIC_DEMO) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) || 'null');
+        if (saved) {
+          users = saved.users;
+          kbOrgRoleBindings.splice(0, kbOrgRoleBindings.length, ...saved.kbOrgRoleBindings);
+          kbUserRoleBindings.splice(0, kbUserRoleBindings.length, ...saved.kbUserRoleBindings);
+          kbVisibility = saved.kbVisibility;
+          document.querySelectorAll('input[name="kb-vis"]').forEach(radio => { radio.checked = radio.value === kbVisibility; });
+        }
+      } catch { localStorage.removeItem(DEMO_STORAGE_KEY); }
+      return;
+    }
+    const response = await fetch("/api/poc/state");
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.error || "state 加载失败");
+    const orgBindings = [];
+    for (const org of data.organizations || []) {
+      for (const binding of data.permissions?.organizations?.[org.customData?.customerOrgId] || []) {
+        const role = binding.role || "viewer";
+        orgBindings.push({ id: `binding-org-${org.customData.customerOrgId}-${role}`, organizationRoleId: binding.organizationRoleId || `kb-001-${role}`, subjectType: "organization", subjectId: org.id, subjectName: org.name, customerOrgId: org.customData.customerOrgId, fullPath: (org.customData.fullPathNames || []).join(" / "), resourceId: binding.resourceId || "kb-001", role, scopes: binding.scopes || [] });
+      }
+    }
+    const userBindings = [];
+    for (const logtoUser of data.users || []) {
+      const local = users.find((item) => item.account === logtoUser.username);
+      if (local) {
+        if (Array.isArray(logtoUser.customData?.featureRoleIds) && logtoUser.customData.featureRoleIds.length) { local.roleIds = logtoUser.customData.featureRoleIds; local.featureRoleIds = logtoUser.customData.featureRoleIds; }
+        local.email = logtoUser.email || local.email;
+        local.phone = logtoUser.phone || local.phone;
+      }
+      if (local) { local.userCustomData.directResourceRoleBindings = data.permissions?.users?.[logtoUser.customData?.customerEmployeeNo || logtoUser.id] || []; }
+      for (const binding of data.permissions?.users?.[logtoUser.customData?.customerEmployeeNo || logtoUser.id] || []) {
+        const role = binding.role || "viewer";
+        userBindings.push({ id: `binding-user-${logtoUser.username}-${role}`, organizationRoleId: binding.organizationRoleId || `kb-001-${role}`, subjectType: "user", subjectId: logtoUser.username, subjectName: local?.name || logtoUser.name || logtoUser.username, employeeNo: logtoUser.customData?.customerEmployeeNo, account: logtoUser.username, resourceId: binding.resourceId || "kb-001", role, scopes: binding.scopes || [] });
+      }
+    }
+    kbVisibility = data.permissions?.visibility?.['kb-001'] || 'restricted';
+    document.querySelectorAll('input[name="kb-vis"]').forEach(radio => { radio.checked = radio.value === kbVisibility; });
+    kbOrgRoleBindings.splice(0, kbOrgRoleBindings.length, ...orgBindings);
+    kbUserRoleBindings.splice(0, kbUserRoleBindings.length, ...userBindings);
+  }
 
   // ——— Init ———
   renderMainTree();
   renderUsers();
   renderKbPerm();
+  hydrateFromLogto().then(() => { renderUsers(); renderKbPerm(); }).catch((error) => toast(`Logto 状态加载失败：${error.message}`, "error"));
 })();
 
 
