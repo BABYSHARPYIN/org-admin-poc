@@ -1153,7 +1153,9 @@ table.data tr:hover td { background: #fafafa; }
 .kb-member-list { border: 1px solid var(--border); border-radius: 6px; max-height: 300px; overflow: auto; }
 .kb-member-option { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
 .kb-member-option:last-child { border-bottom: none; }
-.kb-member-option:hover { background: #f5faff; }
+.kb-member-list .kb-auth-option { display:flex; flex-direction:column; align-items:flex-start; width:100%; padding:8px 10px; border:0; border-bottom:1px solid var(--border); background:#fff; cursor:pointer; text-align:left; }
+.kb-auth-option span { color:var(--text-tertiary); font-size:12px; }
+.kb-auth-option.picked, .kb-auth-option:hover { background:#f5f5f5; }
 .kb-member-option .member-main { flex: 1; min-width: 0; }
 .kb-member-option .member-name { color: var(--text); }
 .kb-member-option .member-meta { color: var(--text-tertiary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1251,7 +1253,7 @@ table.data tr:hover td { background: #fafafa; }
   .sso-actions { display:flex; align-items:center; gap:8px; }
   .kb-pane { flex:1; min-width:0; overflow:auto; padding:16px 20px 24px; background:#fff; }
   .kb-pane > h1 { font-size:16px; font-weight:600; line-height:1.4; margin:0 0 4px; }
-  .kb-pane .list-toolbar { margin: 12px 0; }
+  .kb-meta { display:grid; grid-template-columns:minmax(0,280px) minmax(0,280px); gap:16px; max-width:600px; margin:12px 0 8px; }
   .kb-pane .search-box { max-width:240px; flex:0 1 240px; }
   @media (max-width: 1050px) { .org-pane { width:220px; } }
   @media (max-width: 760px) { .content { padding:8px; overflow:auto; } .workspace-card { flex-direction:column; } .org-pane { width:auto; max-height:320px; border-right:none; border-bottom:1px solid #f0f0f0; } .table-footer .footer-batch { position:static; } }
@@ -1349,22 +1351,10 @@ table.data tr:hover td { background: #fafafa; }
                 <span class="filter-label">当前组织</span><span id="filter-hint-text"></span>
                 <button type="button" id="clear-filter">清除选择</button>
               </div>
-              <div class="selection-bar" id="user-selection-bar" aria-live="polite">
-                <span id="user-selected-count">已选 0 人</span>
-                <div class="batch-action-menu" id="batch-action-menu">
-                  <button class="btn btn-sm" type="button" id="btn-batch-actions" aria-haspopup="menu" aria-expanded="false" disabled>批量操作</button>
-                  <div class="batch-action-list" role="menu" aria-label="批量操作选项">
-                    <button class="batch-action-item" type="button" role="menuitem" data-batch-action="grant" disabled>批量赋予角色</button>
-                    <button class="batch-action-item" type="button" role="menuitem" data-batch-action="revoke" disabled>批量回收角色</button>
-                  </div>
-                </div>
-                <button class="text-btn" type="button" id="btn-exit-batch">完成</button>
-              </div>
               <div class="table-wrap">
                 <table class="data user-table">
                   <thead>
                     <tr>
-                      <th class="check-col"><input type="checkbox" id="user-select-all" aria-label="全选当前页" /></th>
                       <th>姓名</th>
                       <th>账号</th>
                       <th>邮箱</th>
@@ -1378,9 +1368,6 @@ table.data tr:hover td { background: #fafafa; }
                 <div class="empty-state" id="user-empty" style="display:none">暂无数据</div>
               </div>
               <div class="table-footer">
-                <div class="footer-batch">
-                  <button class="text-btn" type="button" id="btn-enter-batch">批量操作</button>
-                </div>
                 <div class="pager" id="user-pager" aria-label="分页"></div>
                 <span class="sr-only" id="user-pagination-label">显示 0 人</span>
               </div>
@@ -1392,100 +1379,52 @@ table.data tr:hover td { background: #fafafa; }
           <div class="workspace-card">
             <div class="kb-pane">
               <h1>测试知识库</h1>
-              <div class="kb-tabs" id="kb-tabs">
-                <button class="kb-tab" type="button" data-kb-tab="basic">基本信息</button>
-                <button class="kb-tab active" type="button" data-kb-tab="perm">公开性设置</button>
-              </div>
-
-              <div class="kb-tab-panel" id="kb-panel-basic">
+              <div class="kb-meta">
                 <div class="form-row">
-                  <label>知识库名称</label>
+                  <label>资源名称</label>
                   <input class="input" value="测试知识库" readonly />
                 </div>
                 <div class="form-row">
-                  <label>描述</label>
-                  <textarea class="textarea" readonly></textarea>
+                  <label>资源标识</label>
+                  <input class="input" value="kb-001" readonly />
                 </div>
               </div>
-
-              <div class="kb-tab-panel active" id="kb-panel-perm">
-                <div class="kb-section">
-                  <h3>知识库访问权限</h3>
-                  <div class="visibility-radios" id="kb-visibility">
-                    <label class="vis-option">
-                      <input type="radio" name="kb-vis" value="restricted" checked />
-                      <span><strong>受限访问</strong></span>
-                    </label>
-                    <label class="vis-option">
-                      <input type="radio" name="kb-vis" value="public" />
-                      <span><strong>公开访问</strong></span>
-                    </label>
-                  </div>
+              <div class="kb-section">
+                <h3>公开性设置</h3>
+                <div class="visibility-radios" id="kb-visibility">
+                  <label class="vis-option">
+                    <input type="radio" name="kb-vis" value="restricted" checked />
+                    <span><strong>受限访问</strong></span>
+                  </label>
+                  <label class="vis-option">
+                    <input type="radio" name="kb-vis" value="public" />
+                    <span><strong>公开访问</strong></span>
+                  </label>
                 </div>
-
-                <div class="kb-section">
-                  <div class="kb-section-head">
-                    <h3>组织授权</h3>
-                    <button class="btn" type="button" id="btn-add-kb-org-grant">添加组织授权</button>
-                  </div>
-                  <div class="table-wrap">
-                    <table class="data">
-                      <thead>
-                        <tr>
-                          <th>组织节点</th>
-                          <th>资源角色</th>
-                          <th>操作</th>
-                        </tr>
-                      </thead>
-                      <tbody id="kb-org-grant-tbody"></tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div class="kb-section">
-                  <div class="kb-section-head">
-                    <h3>有效权限</h3>
-                  </div>
-                  <div class="table-wrap">
-                    <table class="data">
-                      <thead>
-                        <tr>
-                          <th>姓名</th>
-                          <th>账号</th>
-                          <th>来源</th>
-                          <th>有效角色</th>
-                        </tr>
-                      </thead>
-                      <tbody id="kb-effective-tbody"></tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div class="kb-section">
-                  <div class="kb-section-head">
-                    <h3>直接授权</h3>
-                    <div class="btn-group">
-                      <div class="search-box icon-right">
-                        <input class="input" id="kb-member-search" placeholder="请输入搜索内容" aria-label="搜索成员" />
-                        <span class="search-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
-                      </div>
-                      <button class="btn" type="button" id="btn-add-kb-member-single">单个添加</button>
-                      <button class="btn btn-primary" type="button" id="btn-add-kb-member-org">按组织筛选添加</button>
+              </div>
+              <div class="kb-section">
+                <div class="kb-section-head">
+                  <h3>授权列表</h3>
+                  <div class="btn-group">
+                    <div class="search-box icon-right">
+                      <input class="input" id="kb-member-search" placeholder="请输入搜索内容" aria-label="搜索授权" />
+                      <span class="search-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
                     </div>
+                    <button class="btn btn-primary" type="button" id="btn-add-kb-auth">添加授权</button>
                   </div>
-                  <div class="table-wrap">
-                    <table class="data">
-                      <thead>
-                        <tr>
-                          <th>账号</th>
-                          <th>姓名</th>
-                          <th>角色</th>
-                          <th>操作</th>
-                        </tr>
-                      </thead>
-                      <tbody id="kb-member-tbody"></tbody>
-                    </table>
-                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table class="data">
+                    <thead>
+                      <tr>
+                        <th>成员</th>
+                        <th>组织信息</th>
+                        <th>角色</th>
+                        <th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody id="kb-member-tbody"></tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -1552,57 +1491,34 @@ table.data tr:hover td { background: #fafafa; }
     </div>
   </div>
 
-  <!-- Modal: Batch role operation -->
-  <div class="modal-mask" id="modal-batch">
-    <div class="modal wide">
-      <div class="modal-header">
-        <div>
-          <h3 id="batch-modal-title">批量赋予角色</h3>
-        </div>
-        <button class="btn-icon" type="button" data-close="modal-batch">✕</button>
-      </div>
-      <div class="modal-body">
-        <p class="confirm-text" style="margin-bottom:12px" id="batch-scope-text"></p>
-        <div class="form-row" style="margin-top:14px">
-          <label>选择角色<span class="req">*</span></label>
-          <div class="checkbox-group" id="batch-roles"></div>
-          <div class="field-error" id="err-batch-roles">请至少选择一个角色</div>
-        </div>
-        <div class="field-error" id="err-batch-members">请至少选择一名用户</div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-batch">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-do-batch">确认赋予</button>
-        <button class="btn btn-danger-solid" type="button" id="btn-do-batch-revoke">确认回收</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-mask" id="modal-kb-org-grant">
+  <div class="modal-mask" id="modal-kb-auth">
     <div class="modal">
       <div class="modal-header">
-        <div>
-          <h3>添加组织授权</h3>
-        </div>
-        <button class="btn-icon" type="button" data-close="modal-kb-org-grant" aria-label="关闭">✕</button>
+        <h3>添加授权</h3>
+        <button class="btn-icon" type="button" data-close="modal-kb-auth" aria-label="关闭">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-row">
-          <label>组织节点<span class="req">*</span></label>
-          <div class="org-picker" id="kb-grant-org-picker"></div>
-          <div class="field-error" id="err-kb-grant-org">请选择组织节点</div>
+          <label>成员或组织</label>
+          <div class="search-box">
+            <span class="search-ico">⌕</span>
+            <input class="input" id="kb-auth-search" placeholder="请输入搜索内容" />
+          </div>
+          <div class="kb-member-list" id="kb-auth-picker"></div>
+          <div class="empty-state kb-member-empty" id="kb-auth-empty" style="display:none">暂无数据</div>
+          <div class="field-error" id="err-kb-auth">请选择一个授权对象</div>
         </div>
         <div class="kb-member-permission-row">
-          <label>资源角色<span class="req">*</span></label>
-          <select class="input" id="kb-grant-role">
+          <label>角色</label>
+          <select class="input" id="kb-auth-role">
             <option value="editor">编辑者</option>
             <option value="viewer">使用者</option>
           </select>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-kb-org-grant">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-confirm-kb-org-grant">确认授权</button>
+        <button class="btn" type="button" data-close="modal-kb-auth">取消</button>
+        <button class="btn btn-primary" type="button" id="btn-confirm-kb-auth">确认授权</button>
       </div>
     </div>
   </div>
@@ -1624,91 +1540,6 @@ table.data tr:hover td { background: #fafafa; }
     </div>
   </div>
 
-
-  <!-- Modal: Single KB member permission picker -->
-  <div class="modal-mask" id="modal-kb-single-member">
-    <div class="modal">
-      <div class="modal-header">
-        <div>
-          <h3>单个添加</h3>
-        </div>
-        <button class="btn-icon" type="button" data-close="modal-kb-single-member">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-row">
-          <label>搜索用户<span class="req">*</span></label>
-          <div class="search-box">
-            <span class="search-ico">⌕</span>
-            <input class="input" id="kb-single-member-query" placeholder="请输入搜索内容" />
-          </div>
-        </div>
-        <div class="form-row">
-          <label>用户列表</label>
-          <div class="kb-member-list" id="kb-single-member-picker"></div>
-          <div class="empty-state kb-member-empty" id="kb-single-member-empty" style="display:none">暂无数据</div>
-          <div class="field-error" id="err-kb-single-member">请选择一名用户</div>
-        </div>
-        <div class="kb-member-permission-row">
-          <label>资源角色<span class="req">*</span></label>
-          <select class="input" id="kb-single-member-role">
-            <option value="editor">编辑者</option>
-            <option value="viewer">使用者</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-kb-single-member">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-confirm-kb-single-member">确认添加</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-mask" id="modal-kb-members">
-    <div class="modal wide kb-member-modal">
-      <div class="modal-header">
-        <div>
-          <h3>按组织筛选添加</h3>
-        </div>
-        <button class="btn-icon" type="button" data-close="modal-kb-members">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="kb-member-toolbar">
-          <span class="kb-selected-count" id="kb-selected-count">已选 0 人</span>
-        </div>
-        <div class="kb-member-picker-layout">
-          <div class="kb-member-org-filter">
-            <div class="picker-title">组织筛选</div>
-            <div class="search-box kb-org-search">
-              <span class="search-ico">⌕</span>
-              <input class="input" id="kb-org-search" placeholder="请输入搜索内容" />
-            </div>
-            <button class="kb-clear-org" type="button" id="kb-clear-org">全部组织</button>
-            <div class="org-picker kb-org-picker" id="kb-org-picker"></div>
-          </div>
-          <div class="kb-member-results">
-            <div class="picker-title">成员列表</div>
-            <div class="kb-member-result-head">
-              <label class="checkbox"><input type="checkbox" id="kb-select-all" /> 全选当前结果</label>
-              <span id="kb-result-count" class="form-hint">0 人</span>
-            </div>
-            <div class="kb-member-list" id="kb-member-picker"></div>
-            <div class="empty-state kb-member-empty" id="kb-member-picker-empty" style="display:none">暂无数据</div>
-          </div>
-        </div>
-        <div class="kb-member-permission-row">
-          <label>资源角色<span class="req">*</span></label>
-          <select class="input" id="kb-member-role">
-            <option value="editor">编辑者</option>
-            <option value="viewer">使用者</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn" type="button" data-close="modal-kb-members">取消</button>
-        <button class="btn btn-primary" type="button" id="btn-confirm-kb-members">确认添加</button>
-      </div>
-    </div>
-  </div>
 
   <div class="toast-wrap" id="toast-wrap"></div>
 
@@ -2001,19 +1832,12 @@ table.data tr:hover td { background: #fafafa; }
     userSearch: "",
     userPage: 1,
     selectedRoleId: "r-admin",
-    kbTab: "perm",
     kbMemberSearch: "",
-    kbSingleMemberQuery: "",
-    kbSingleMemberAccount: null,
-    kbOrgSearch: "",
-    kbOrgId: null,
-    kbGrantOrgId: null,
-    kbSelectedAccounts: new Set(),
+    kbAuthQuery: "",
+    kbAuthSubject: null,
     editingUserId: null,
     editingRoleId: null,
-    batchOperation: null,
     expandAll: false,
-    selectedUserIds: new Set(),
   };
 
   // ——— Org helpers ———
@@ -2507,25 +2331,12 @@ table.data tr:hover td { background: #fafafa; }
     pager.appendChild(next);
   }
 
-  function renderSelectionState(pageItems) {
-    const selectedCount = state.selectedUserIds.size;
-    const selectAll = document.getElementById("user-select-all");
-    selectAll.checked = pageItems.length > 0 && pageItems.every((user) => state.selectedUserIds.has(user.id));
-    selectAll.indeterminate = pageItems.some((user) => state.selectedUserIds.has(user.id)) && !selectAll.checked;
-    document.getElementById("user-selected-count").textContent = `已选 ${selectedCount} 人`;
-    const batchActionButton = document.getElementById("btn-batch-actions");
-    batchActionButton.disabled = selectedCount === 0;
-    document.querySelectorAll("[data-batch-action]").forEach((item) => { item.disabled = selectedCount === 0; });
-  }
-
   function renderUsers() {
     const tbody = document.getElementById("user-tbody");
     const empty = document.getElementById("user-empty");
     const hint = document.getElementById("filter-hint");
     const hintText = document.getElementById("filter-hint-text");
     const list = currentUserResults();
-    const visibleIds = new Set(list.map((user) => user.id));
-    state.selectedUserIds.forEach((id) => { if (!visibleIds.has(id)) state.selectedUserIds.delete(id); });
     const node = state.selectedOrgId ? findNode(state.selectedOrgId) : null;
     const page = pageSlice(list);
     document.getElementById("user-pagination-label").textContent = `显示 ${page.items.length} 人，共 ${list.length} 人`;
@@ -2539,11 +2350,8 @@ table.data tr:hover td { background: #fafafa; }
     empty.style.display = list.length ? "none" : "block";
     tbody.innerHTML = "";
     for (const user of page.items) {
-      const selected = state.selectedUserIds.has(user.id);
       const tr = document.createElement("tr");
-      if (selected) tr.classList.add("selected");
       tr.innerHTML = `
-        <td class="check-col"><input type="checkbox" aria-label="选择 ${escapeHtml(user.name)}" data-user-select="${user.id}" ${selected ? "checked" : ""} /></td>
         <td>${escapeHtml(user.name)}</td>
         <td>${escapeHtml(user.account)}</td>
         <td>${dash(user.email)}</td>
@@ -2552,55 +2360,9 @@ table.data tr:hover td { background: #fafafa; }
         <td class="actions-cell action-col"><button class="btn-link" type="button" data-view="${user.id}">查看</button></td>`;
       tbody.appendChild(tr);
     }
-    renderSelectionState(page.items);
     renderPager(page.pages);
-    tbody.querySelectorAll("[data-user-select]").forEach((checkbox) => checkbox.addEventListener("change", () => {
-      if (checkbox.checked) state.selectedUserIds.add(checkbox.dataset.userSelect);
-      else state.selectedUserIds.delete(checkbox.dataset.userSelect);
-      renderUsers();
-    }));
     tbody.querySelectorAll("[data-view]").forEach((btn) => btn.addEventListener("click", () => openUserForm(btn.dataset.view)));
   }
-
-  document.getElementById("user-select-all").addEventListener("change", (event) => {
-    pageSlice(currentUserResults()).items.forEach((user) => {
-      if (event.target.checked) state.selectedUserIds.add(user.id);
-      else state.selectedUserIds.delete(user.id);
-    });
-    renderUsers();
-  });
-
-  const orgUsersPage = document.getElementById("page-org-users");
-  document.getElementById("btn-enter-batch").addEventListener("click", () => {
-    orgUsersPage.classList.add("is-selecting");
-  });
-  document.getElementById("btn-exit-batch").addEventListener("click", () => {
-    orgUsersPage.classList.remove("is-selecting");
-    state.selectedUserIds.clear();
-    renderUsers();
-  });
-
-  const batchActionMenu = document.getElementById("batch-action-menu");
-  const batchActionButton = document.getElementById("btn-batch-actions");
-  batchActionButton.addEventListener("click", (event) => {
-    if (batchActionButton.disabled) return;
-    event.stopPropagation();
-    const open = batchActionMenu.classList.toggle("open");
-    batchActionButton.setAttribute("aria-expanded", String(open));
-  });
-  document.addEventListener("click", (event) => {
-    if (!batchActionMenu.contains(event.target)) {
-      batchActionMenu.classList.remove("open");
-      batchActionButton.setAttribute("aria-expanded", "false");
-    }
-  });
-  document.querySelectorAll("[data-batch-action]").forEach((item) => item.addEventListener("click", () => {
-    if (item.disabled) return;
-    batchActionMenu.classList.remove("open");
-    batchActionButton.setAttribute("aria-expanded", "false");
-    if (item.dataset.batchAction === "grant") openBatchRoleOperation("grant");
-    if (item.dataset.batchAction === "revoke") openBatchRoleOperation("revoke");
-  }));
 
   document.getElementById("user-search").addEventListener("input", (e) => {
     state.userSearch = e.target.value;
@@ -2623,7 +2385,6 @@ table.data tr:hover td { background: #fafafa; }
     confirmDialog("删除用户", `确定删除用户 <strong>${escapeHtml(user.name)}</strong>（${escapeHtml(user.account)}）？此操作不可恢复。`, () => {
       users = users.filter((item) => item.id !== user.id);
       kbMembers = kbMembers.filter((member) => member.account.toLowerCase() !== user.account.toLowerCase());
-      state.selectedUserIds.delete(user.id);
       closeModal("modal-user");
       toast("已删除用户 " + user.name);
       renderUsers();
@@ -2777,92 +2538,8 @@ table.data tr:hover td { background: #fafafa; }
     else commit();
   });
 
-  // ——— Batch user operations ———
-  function openBatchRoleOperation(operation) {
-    state.batchOperation = operation;
-    document.getElementById("batch-modal-title").textContent = operation === "grant" ? "批量赋予角色" : "批量回收角色";
-    const selected = selectedBatchUsers();
-    document.getElementById("batch-scope-text").innerHTML = `已选 <strong id="batch-selected-user-count">${selected.length}</strong> 人`;
-    document.getElementById("btn-do-batch").style.display = operation === "grant" ? "" : "none";
-    document.getElementById("btn-do-batch-revoke").style.display = operation === "revoke" ? "" : "none";
-    fillRoleCheckboxes("batch-roles", []);
-    document.getElementById("err-batch-roles").classList.remove("show");
-    document.getElementById("err-batch-members").classList.toggle("show", !selected.length);
-    openModal("modal-batch");
-  }
-
-  function selectedBatchUsers() {
-    return users.filter((user) => state.selectedUserIds.has(user.id));
-  }
-
-  function selectedBatchRoles() {
-    return Array.from(document.querySelectorAll("#batch-roles input:checked")).map((input) => input.value);
-  }
-
-  function validateBatchOperation() {
-    const roleIds = selectedBatchRoles();
-    const members = selectedBatchUsers();
-    document.getElementById("err-batch-roles").classList.toggle("show", !roleIds.length);
-    document.getElementById("err-batch-members").classList.toggle("show", !members.length);
-    return { roleIds, members };
-  }
-
-  document.getElementById("btn-do-batch").addEventListener("click", () => {
-    const { roleIds, members } = validateBatchOperation();
-    if (!roleIds.length || !members.length) return;
-    let changed = 0;
-    members.forEach((user) => {
-      const before = user.roleIds.slice();
-      user.roleIds = Array.from(new Set([...user.roleIds, ...roleIds]));
-      if (user.roleIds.length !== before.length) changed++;
-    });
-    state.selectedUserIds.clear();
-    closeModal("modal-batch");
-    toast(`已为 ${changed} 名用户赋予角色`);
-    renderUsers();
-  });
-
-  document.getElementById("btn-do-batch-revoke").addEventListener("click", () => {
-    const { roleIds, members } = validateBatchOperation();
-    if (!roleIds.length || !members.length) return;
-    const invalidMembers = members.filter((user) => user.roleIds.filter((roleId) => !roleIds.includes(roleId)).length === 0);
-    if (invalidMembers.length) {
-      const names = invalidMembers.map((user) => escapeHtml(user.name)).join("、");
-      const message = `不能回收用户的全部角色，请先为 ${names} 保留至少一个角色`;
-      document.getElementById("err-batch-members").textContent = message;
-      document.getElementById("err-batch-members").classList.add("show");
-      toast(message, "error");
-      return;
-    }
-    let changed = 0;
-    members.forEach((user) => {
-      const before = user.roleIds.length;
-      user.roleIds = user.roleIds.filter((roleId) => !roleIds.includes(roleId));
-      if (user.roleIds.length !== before) changed++;
-    });
-    state.selectedUserIds.clear();
-    closeModal("modal-batch");
-    toast(`已为 ${changed} 名用户回收角色`);
-    renderUsers();
-  });
-
-  // ——— Knowledge base instance ACL demo ———
+  // ——— Knowledge base authorization list ———
   const KB_ROLE_LABEL = { owner: "所有者", editor: "编辑者", viewer: "使用者" };
-
-  function setKbTab(tab) {
-    state.kbTab = tab;
-    document.querySelectorAll(".kb-tab").forEach((b) => {
-      b.classList.toggle("active", b.dataset.kbTab === tab);
-    });
-    document.getElementById("kb-panel-basic").classList.toggle("active", tab === "basic");
-    document.getElementById("kb-panel-perm").classList.toggle("active", tab === "perm");
-  }
-
-  document.getElementById("kb-tabs").addEventListener("click", (e) => {
-    const btn = e.target.closest(".kb-tab");
-    if (!btn) return;
-    setKbTab(btn.dataset.kbTab);
-  });
 
   document.querySelectorAll('input[name="kb-vis"]').forEach((radio) => {
     radio.addEventListener("change", () => {
@@ -2878,381 +2555,176 @@ table.data tr:hover td { background: #fafafa; }
     renderKbMembers();
   });
 
+  function kbRows() {
+    const orgRows = kbOrgGrants.map((grant) => {
+      const path = pathLabel(grant.orgId);
+      return {
+        kind: "org",
+        id: grant.orgId,
+        name: findNode(grant.orgId) ? findNode(grant.orgId).name : grant.orgId,
+        account: "",
+        orgInfo: path,
+        role: grant.role,
+        locked: false,
+      };
+    });
+    const userRows = kbMembers.map((member) => {
+      const user = users.find((item) => item.account.toLowerCase() === member.account.toLowerCase());
+      const orgInfo = user && user.orgId ? pathLabel(user.orgId) : "—";
+      return {
+        kind: "user",
+        id: member.account,
+        name: member.name,
+        account: member.account,
+        orgInfo,
+        role: member.role,
+        locked: member.role === "owner",
+      };
+    });
+    return orgRows.concat(userRows);
+  }
+
   function renderKbMembers() {
     const tbody = document.getElementById("kb-member-tbody");
     const q = state.kbMemberSearch || "";
-    const list = kbMembers.filter((m) => {
+    const list = kbRows().filter((row) => {
       if (!q) return true;
-      return m.account.toLowerCase().includes(q) || m.name.toLowerCase().includes(q);
+      return [row.name, row.account, row.orgInfo, KB_ROLE_LABEL[row.role] || ""].some((value) => String(value).toLowerCase().includes(q));
     });
-    // Keep owner first
-    list.sort((a, b) => (a.role === "owner" ? -1 : b.role === "owner" ? 1 : 0));
-    tbody.innerHTML = list
-      .map((m) => {
-        let roleCell;
-        if (m.role === "owner") {
-          roleCell = `<span class="owner-badge">所有者</span>`;
-        } else {
-          roleCell = `<select class="input input-sm kb-role-select" data-account="${escapeHtml(m.account)}">
-            <option value="editor" ${m.role === "editor" ? "selected" : ""}>编辑者</option>
-            <option value="viewer" ${m.role === "viewer" ? "selected" : ""}>使用者</option>
+    list.sort((a, b) => (a.locked === b.locked ? a.name.localeCompare(b.name, "zh") : a.locked ? -1 : 1));
+    tbody.innerHTML = list.length ? list.map((row) => {
+      const member = row.account
+        ? `<div class="user-primary">${escapeHtml(row.name)}</div><div class="user-secondary">${escapeHtml(row.account)}</div>`
+        : `<div class="user-primary">${escapeHtml(row.name)}</div>`;
+      const roleCell = row.locked
+        ? `<span class="owner-badge">${escapeHtml(KB_ROLE_LABEL[row.role] || row.role)}</span>`
+        : `<select class="input input-sm kb-role-select" data-kind="${row.kind}" data-id="${escapeHtml(row.id)}">
+            <option value="editor" ${row.role === "editor" ? "selected" : ""}>编辑者</option>
+            <option value="viewer" ${row.role === "viewer" ? "selected" : ""}>使用者</option>
           </select>`;
-        }
-        const action =
-          m.role === "owner"
-            ? "—"
-            : `<button class="link-danger" type="button" data-remove="${escapeHtml(m.account)}">移除</button>`;
-        return `<tr>
-          <td>${escapeHtml(m.account)}</td>
-          <td>${escapeHtml(m.name)}</td>
-          <td>${roleCell}</td>
-          <td>${action}</td>
-        </tr>`;
-      })
-      .join("");
+      const action = row.locked
+        ? "—"
+        : `<button class="link-danger" type="button" data-remove-kind="${row.kind}" data-remove-id="${escapeHtml(row.id)}">移除</button>`;
+      return `<tr><td>${member}</td><td>${escapeHtml(row.orgInfo)}</td><td>${roleCell}</td><td>${action}</td></tr>`;
+    }).join("") : `<tr><td colspan="4" class="muted">暂无数据</td></tr>`;
 
     tbody.querySelectorAll(".kb-role-select").forEach((sel) => {
       sel.addEventListener("change", () => {
-        const m = kbMembers.find((x) => x.account === sel.dataset.account);
-        if (m && m.role !== "owner") {
-          m.role = sel.value;
-          toast(`已将 ${m.name} 设为${KB_ROLE_LABEL[m.role]}`);
-          renderKbEffective();
+        if (sel.dataset.kind === "org") {
+          const grant = kbOrgGrants.find((item) => item.orgId === sel.dataset.id);
+          if (grant) grant.role = sel.value;
+        } else {
+          const member = kbMembers.find((item) => item.account === sel.dataset.id);
+          if (member && member.role !== "owner") member.role = sel.value;
         }
+        toast("已保存");
       });
     });
-    tbody.querySelectorAll("[data-remove]").forEach((btn) => {
+    tbody.querySelectorAll("[data-remove-kind]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const account = btn.getAttribute("data-remove");
-        const m = kbMembers.find((x) => x.account === account);
-        if (!m || m.role === "owner") return;
-        confirmDialog(
-          "移除成员",
-          `确定将 <strong>${escapeHtml(m.name)}</strong>（${escapeHtml(m.account)}）从本知识库成员中移除？`,
-          () => {
-            kbMembers = kbMembers.filter((x) => x.account !== account);
-            toast("已移除成员 " + m.name);
-            renderKbPerm();
-          }
-        );
+        const kind = btn.dataset.removeKind;
+        const id = btn.dataset.removeId;
+        confirmDialog("移除授权", "确定移除该授权？", () => {
+          if (kind === "org") kbOrgGrants = kbOrgGrants.filter((item) => item.orgId !== id);
+          else kbMembers = kbMembers.filter((item) => item.account !== id || item.role === "owner");
+          toast("已移除");
+          renderKbMembers();
+        });
       });
     });
   }
 
-  function kbUsersUnderOrg(orgId) {
-    const ids = new Set(collectDescendantIds(orgId));
-    return kbCandidateUsers.filter((candidate) => {
-      const user = users.find((item) => item.account.toLowerCase() === candidate.account.toLowerCase());
-      return user && user.orgId && ids.has(user.orgId);
-    });
-  }
-
-  function affiliationLabel(user) {
-    if (!user || !user.orgId) return "无组织归属";
-    return pathLabel(user.orgId);
-  }
-
-  const RESOURCE_RANK = { viewer: 1, editor: 2, owner: 3 };
-  function strongerRole(left, right) {
-    if (!left) return right;
-    if (!right) return left;
-    return (RESOURCE_RANK[left] || 0) >= (RESOURCE_RANK[right] || 0) ? left : right;
-  }
-
-  function orgResourceRole(user) {
-    if (!user || !user.orgId) return null;
-    let role = null;
-    ancestorIds(user.orgId).forEach((id) => {
-      const grant = kbOrgGrants.find((item) => item.orgId === id);
-      if (grant) role = strongerRole(role, grant.role);
-    });
-    return role;
-  }
-
-  function getKbSelectableUsers() {
-    if (!state.kbOrgId) return [];
-    const scopedUsers = kbUsersUnderOrg(state.kbOrgId);
-    const memberAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
-    return scopedUsers.filter((candidate) => !memberAccounts.has(candidate.account.toLowerCase()));
-  }
-
-  function renderKbOrgPicker() {
-    renderOrgTree(document.getElementById("kb-org-picker"), {
-      picker: true,
-      selectedId: state.kbOrgId,
-      filterQuery: state.kbOrgSearch,
-      onRerender: renderKbOrgPicker,
-      onSelect: (node) => {
-        state.kbOrgId = node.id;
-        renderKbOrgPicker();
-        renderKbMemberPicker();
-      },
-    });
-  }
-
-  function renderKbMemberPicker() {
-    const picker = document.getElementById("kb-member-picker");
-    const empty = document.getElementById("kb-member-picker-empty");
-    const resultCount = document.getElementById("kb-result-count");
-    const selectedCount = document.getElementById("kb-selected-count");
-    const selectAll = document.getElementById("kb-select-all");
-    const list = getKbSelectableUsers();
-    const listAccounts = new Set(list.map((candidate) => candidate.account.toLowerCase()));
-
-    state.kbSelectedAccounts.forEach((account) => {
-      if (!listAccounts.has(account.toLowerCase())) state.kbSelectedAccounts.delete(account);
-    });
-    picker.innerHTML = list.length ? list.map((candidate) => {
-      const user = users.find((item) => item.account.toLowerCase() === candidate.account.toLowerCase());
-      const path = affiliationLabel(user);
-      const checked = state.kbSelectedAccounts.has(candidate.account.toLowerCase());
-      return `<label class="kb-member-option">
-        <input type="checkbox" data-kb-account="${escapeHtml(candidate.account.toLowerCase())}" ${checked ? "checked" : ""} />
-        <span class="member-main"><span class="member-name">${escapeHtml(candidate.name)}</span><span class="member-meta">${escapeHtml(candidate.account)} · ${escapeHtml(candidate.email)}</span></span>
-        <span class="member-org">${escapeHtml(path)}</span>
-      </label>`;
-    }).join("") : "";
-    empty.textContent = "暂无数据";
-    empty.style.display = list.length ? "none" : "block";
-    resultCount.textContent = `${list.length} 人`;
-    selectedCount.textContent = `已选 ${state.kbSelectedAccounts.size} 人`;
-    selectAll.checked = list.length > 0 && list.every((candidate) => state.kbSelectedAccounts.has(candidate.account.toLowerCase()));
-    selectAll.indeterminate = list.some((candidate) => state.kbSelectedAccounts.has(candidate.account.toLowerCase())) && !selectAll.checked;
-
-    picker.querySelectorAll("[data-kb-account]").forEach((checkbox) => {
-      checkbox.addEventListener("change", () => {
-        const account = checkbox.dataset.kbAccount;
-        if (checkbox.checked) state.kbSelectedAccounts.add(account);
-        else state.kbSelectedAccounts.delete(account);
-        renderKbMemberPicker();
-      });
-    });
-  }
-
-  function renderKbSingleMemberPicker() {
-    const picker = document.getElementById("kb-single-member-picker");
-    const empty = document.getElementById("kb-single-member-empty");
-    const query = (state.kbSingleMemberQuery || "").trim().toLowerCase();
+  function renderKbAuthPicker() {
+    const picker = document.getElementById("kb-auth-picker");
+    const empty = document.getElementById("kb-auth-empty");
+    const query = (state.kbAuthQuery || "").trim().toLowerCase();
     if (!query) {
       picker.innerHTML = "";
       empty.style.display = "none";
       return;
     }
-    const memberAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
-    const list = query
-      ? kbCandidateUsers.filter((candidate) => {
-          if (memberAccounts.has(candidate.account.toLowerCase())) return false;
-          return [candidate.account, candidate.name, candidate.email].some((value) => value.toLowerCase().includes(query));
-        })
-      : [];
-    picker.innerHTML = list
-      .map((candidate) => {
-        const user = users.find((item) => item.account.toLowerCase() === candidate.account.toLowerCase());
-        const checked = state.kbSingleMemberAccount === candidate.account.toLowerCase();
-        return `<label class="kb-member-option">
-          <input type="radio" name="kb-single-member" value="${escapeHtml(candidate.account.toLowerCase())}" ${checked ? "checked" : ""} />
-          <span class="member-main"><span class="member-name">${escapeHtml(candidate.name)}</span><span class="member-meta">${escapeHtml(candidate.account)} · ${escapeHtml(candidate.email)}</span></span>
-          <span class="member-org">${escapeHtml(affiliationLabel(user))}</span>
-        </label>`;
-      })
-      .join("");
-    empty.style.display = list.length ? "none" : "block";
-    picker.querySelectorAll('[name="kb-single-member"]').forEach((radio) => {
-      radio.addEventListener("change", () => {
-        state.kbSingleMemberAccount = radio.value;
-        document.getElementById("err-kb-single-member").classList.remove("show");
+    const orgs = [];
+    walk(orgTree, (node) => {
+      if (node.name.toLowerCase().includes(query)) orgs.push(node);
+    });
+    const people = kbCandidateUsers.filter((candidate) => [candidate.name, candidate.account, candidate.email].some((value) => String(value || "").toLowerCase().includes(query)));
+    const selected = state.kbAuthSubject;
+    const orgHtml = orgs.map((node) => {
+      const active = selected && selected.type === "org" && selected.id === node.id ? " picked" : "";
+      return `<button class="kb-auth-option${active}" type="button" data-auth-org="${escapeHtml(node.id)}"><strong>${escapeHtml(node.name)}</strong><span>${escapeHtml(pathLabel(node.id))}</span></button>`;
+    }).join("");
+    const userHtml = people.map((candidate) => {
+      const active = selected && selected.type === "user" && selected.id === candidate.account ? " picked" : "";
+      return `<button class="kb-auth-option${active}" type="button" data-auth-user="${escapeHtml(candidate.account)}"><strong>${escapeHtml(candidate.name)}</strong><span>${escapeHtml(candidate.account)}</span></button>`;
+    }).join("");
+    picker.innerHTML = orgHtml + userHtml;
+    empty.style.display = picker.innerHTML ? "none" : "block";
+    picker.querySelectorAll("[data-auth-org]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const node = findNode(button.dataset.authOrg);
+        state.kbAuthSubject = { type: "org", id: node.id, name: node.name };
+        document.getElementById("err-kb-auth").classList.remove("show");
+        renderKbAuthPicker();
+      });
+    });
+    picker.querySelectorAll("[data-auth-user]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const candidate = kbCandidateUsers.find((item) => item.account === button.dataset.authUser);
+        state.kbAuthSubject = { type: "user", id: candidate.account, name: candidate.name };
+        document.getElementById("err-kb-auth").classList.remove("show");
+        renderKbAuthPicker();
       });
     });
   }
 
-  function openKbSingleMemberPicker() {
-    state.kbSingleMemberQuery = "";
-    state.kbSingleMemberAccount = null;
-    document.getElementById("kb-single-member-query").value = "";
-    document.getElementById("kb-single-member-role").value = "editor";
-    document.getElementById("err-kb-single-member").classList.remove("show");
-    renderKbSingleMemberPicker();
-    openModal("modal-kb-single-member");
+  function openKbAuth() {
+    state.kbAuthQuery = "";
+    state.kbAuthSubject = null;
+    document.getElementById("kb-auth-search").value = "";
+    document.getElementById("kb-auth-role").value = "editor";
+    document.getElementById("err-kb-auth").classList.remove("show");
+    renderKbAuthPicker();
+    openModal("modal-kb-auth");
   }
 
-  function addSingleKbMember() {
-    const account = state.kbSingleMemberAccount;
-    const role = document.getElementById("kb-single-member-role").value;
-    if (!account) {
-      document.getElementById("err-kb-single-member").classList.add("show");
+  function confirmKbAuth() {
+    const subject = state.kbAuthSubject;
+    const role = document.getElementById("kb-auth-role").value;
+    if (!subject) {
+      document.getElementById("err-kb-auth").classList.add("show");
       return;
     }
-    const candidate = kbCandidateUsers.find((item) => item.account.toLowerCase() === account);
-    if (!candidate) return;
-    kbMembers.push({ account: candidate.account, name: candidate.name, role });
-    closeModal("modal-kb-single-member");
-    toast(`已按用户添加 1 名成员为${KB_ROLE_LABEL[role]}`);
-    renderKbPerm();
-  }
-
-  function openKbOrgMemberPicker() {
-    state.kbOrgSearch = "";
-    state.kbOrgId = null;
-    state.kbSelectedAccounts = new Set();
-    document.getElementById("kb-org-search").value = "";
-    document.getElementById("kb-member-role").value = "editor";
-    renderKbOrgPicker();
-    renderKbMemberPicker();
-    openModal("modal-kb-members");
-  }
-
-  function addSelectedKbMembers() {
-    const selectedAccounts = state.kbSelectedAccounts;
-    const role = document.getElementById("kb-member-role").value;
-    if (!selectedAccounts.size) {
-      toast("请至少选择一名用户", "error");
-      return;
-    }
-    const existingAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
-    let added = 0;
-    selectedAccounts.forEach((account) => {
-      const candidate = kbCandidateUsers.find((item) => item.account.toLowerCase() === account);
-      if (candidate && !existingAccounts.has(account)) {
-        kbMembers.push({ account: candidate.account, name: candidate.name, role });
-        existingAccounts.add(account);
-        added++;
+    if (subject.type === "org") {
+      const existing = kbOrgGrants.find((item) => item.orgId === subject.id);
+      if (existing) existing.role = role;
+      else kbOrgGrants.push({ orgId: subject.id, role });
+    } else {
+      const existing = kbMembers.find((item) => item.account.toLowerCase() === subject.id.toLowerCase());
+      if (existing && existing.role === "owner") {
+        toast("所有者不可变更", "error");
+        return;
       }
-    });
-    closeModal("modal-kb-members");
-    toast(`已按用户添加 ${added} 名成员为${KB_ROLE_LABEL[role]}`);
-    renderKbPerm();
-  }
-
-  function renderKbOrgGrants() {
-    const tbody = document.getElementById("kb-org-grant-tbody");
-    if (!kbOrgGrants.length) {
-      tbody.innerHTML = '<tr><td colspan="3" class="muted">暂无数据</td></tr>';
-      return;
+      if (existing) existing.role = role;
+      else kbMembers.push({ account: subject.id, name: subject.name, role });
     }
-    tbody.innerHTML = kbOrgGrants.map((grant, index) => `<tr>
-      <td>${escapeHtml(pathLabel(grant.orgId))}</td>
-      <td>${escapeHtml(KB_ROLE_LABEL[grant.role] || grant.role)}</td>
-      <td><button class="link-danger" type="button" data-remove-grant="${index}">移除</button></td>
-    </tr>`).join("");
-    tbody.querySelectorAll("[data-remove-grant]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        kbOrgGrants.splice(Number(btn.dataset.removeGrant), 1);
-        toast("已移除组织授权");
-        renderKbPerm();
-      });
-    });
-  }
-
-  function renderKbEffective() {
-    const tbody = document.getElementById("kb-effective-tbody");
-    const rows = [];
-    const seen = new Set();
-    kbMembers.forEach((member) => {
-      const user = users.find((item) => item.account.toLowerCase() === member.account.toLowerCase());
-      const orgRole = user ? orgResourceRole(user) : null;
-      const sources = [];
-      if (orgRole) sources.push("组织");
-      sources.push("直接");
-      rows.push({
-        name: member.name,
-        account: member.account,
-        source: sources.join(" + "),
-        role: strongerRole(orgRole, member.role),
-      });
-      seen.add(member.account.toLowerCase());
-    });
-    users.forEach((user) => {
-      if (seen.has(user.account.toLowerCase())) return;
-      const orgRole = orgResourceRole(user);
-      if (!orgRole) return;
-      rows.push({ name: user.name, account: user.account, source: "组织", role: orgRole });
-    });
-    tbody.innerHTML = rows.length ? rows.map((row) => `<tr>
-      <td>${escapeHtml(row.name)}</td>
-      <td>${escapeHtml(row.account)}</td>
-      <td>${escapeHtml(row.source)}</td>
-      <td>${escapeHtml(KB_ROLE_LABEL[row.role] || row.role)}</td>
-    </tr>`).join("") : '<tr><td colspan="4" class="muted">暂无数据</td></tr>';
-  }
-
-  function renderKbGrantPicker() {
-    renderOrgTree(document.getElementById("kb-grant-org-picker"), {
-      picker: true,
-      selectedId: state.kbGrantOrgId,
-      onRerender: renderKbGrantPicker,
-      onSelect: (node) => {
-        state.kbGrantOrgId = node.id;
-        document.getElementById("err-kb-grant-org").classList.remove("show");
-        renderKbGrantPicker();
-      },
-    });
-  }
-
-  function openKbOrgGrant() {
-    state.kbGrantOrgId = null;
-    document.getElementById("kb-grant-role").value = "viewer";
-    document.getElementById("err-kb-grant-org").classList.remove("show");
-    renderKbGrantPicker();
-    openModal("modal-kb-org-grant");
-  }
-
-  function addKbOrgGrant() {
-    if (!state.kbGrantOrgId) {
-      document.getElementById("err-kb-grant-org").classList.add("show");
-      return;
-    }
-    const role = document.getElementById("kb-grant-role").value;
-    const existing = kbOrgGrants.find((item) => item.orgId === state.kbGrantOrgId);
-    if (existing) existing.role = role;
-    else kbOrgGrants.push({ orgId: state.kbGrantOrgId, role });
-    closeModal("modal-kb-org-grant");
+    closeModal("modal-kb-auth");
     toast("已添加");
-    renderKbPerm();
-  }
-
-  function renderKbPerm() {
-    document.querySelectorAll('input[name="kb-vis"]').forEach((r) => {
-      r.checked = r.value === kbVisibility;
-    });
-    setKbTab(state.kbTab || "perm");
-    renderKbOrgGrants();
-    renderKbEffective();
     renderKbMembers();
   }
 
-  document.getElementById("btn-add-kb-member-single").addEventListener("click", openKbSingleMemberPicker);
-  document.getElementById("btn-add-kb-member-org").addEventListener("click", openKbOrgMemberPicker);
-
-  document.getElementById("kb-single-member-query").addEventListener("input", (e) => {
-    state.kbSingleMemberQuery = e.target.value;
-    renderKbSingleMemberPicker();
-  });
-
-  document.getElementById("kb-org-search").addEventListener("input", (e) => {
-    state.kbOrgSearch = e.target.value.trim();
-    renderKbOrgPicker();
-  });
-
-  document.getElementById("kb-clear-org").addEventListener("click", () => {
-    state.kbOrgId = null;
-    renderKbOrgPicker();
-    renderKbMemberPicker();
-  });
-
-  document.getElementById("kb-select-all").addEventListener("change", (e) => {
-    const list = getKbSelectableUsers();
-    list.forEach((candidate) => {
-      const account = candidate.account.toLowerCase();
-      if (e.target.checked) state.kbSelectedAccounts.add(account);
-      else state.kbSelectedAccounts.delete(account);
+  function renderKbPerm() {
+    document.querySelectorAll('input[name="kb-vis"]').forEach((radio) => {
+      radio.checked = radio.value === kbVisibility;
     });
-    renderKbMemberPicker();
-  });
+    renderKbMembers();
+  }
 
-  document.getElementById("btn-confirm-kb-single-member").addEventListener("click", addSingleKbMember);
-  document.getElementById("btn-confirm-kb-members").addEventListener("click", addSelectedKbMembers);
-  document.getElementById("btn-add-kb-org-grant").addEventListener("click", openKbOrgGrant);
-  document.getElementById("btn-confirm-kb-org-grant").addEventListener("click", addKbOrgGrant);
+  document.getElementById("btn-add-kb-auth").addEventListener("click", openKbAuth);
+  document.getElementById("kb-auth-search").addEventListener("input", (event) => {
+    state.kbAuthQuery = event.target.value;
+    renderKbAuthPicker();
+  });
+  document.getElementById("btn-confirm-kb-auth").addEventListener("click", confirmKbAuth);
 
   users.forEach((user) => {
     user.customerInfo = "";
