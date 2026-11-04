@@ -1039,11 +1039,11 @@ table.data tr:hover td { background: #fafafa; }
   cursor: pointer;
   margin-bottom: -1px;
 }
-.kb-tab:hover { color: var(--primary); }
+.kb-tab:hover { color: #1677ff; }
 .kb-tab.active {
-  color: var(--primary);
+  color: #1677ff;
   font-weight: 600;
-  border-bottom-color: var(--primary);
+  border-bottom-color: #1677ff;
 }
 .kb-tab-panel { display: none; }
 .kb-tab-panel.active { display: block; }
@@ -1079,10 +1079,10 @@ table.data tr:hover td { background: #fafafa; }
   background: #fff;
 }
 .vis-option:has(input:checked) {
-  border-color: var(--primary);
-  background: var(--primary-bg);
+  border-color: #1677ff;
+  background: #f0f7ff;
 }
-.vis-option input { margin-top: 3px; accent-color: var(--primary); }
+.vis-option input { margin-top: 3px; accent-color: #1677ff; }
 .vis-option strong { display: block; font-size: 14px; color: var(--text); }
 .vis-option small {
   display: block;
@@ -1249,7 +1249,10 @@ table.data tr:hover td { background: #fafafa; }
   .drawer .modal-body { flex:1; }
   .json-view { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; line-height:1.5; min-height:140px; white-space:pre; }
   .sso-actions { display:flex; align-items:center; gap:8px; }
-  .kb-note { color:var(--text-tertiary); font-size:12px; line-height:1.5; margin-top:4px; max-width:640px; }
+  .kb-pane { flex:1; min-width:0; overflow:auto; padding:16px 20px 24px; background:#fff; }
+  .kb-pane > h1 { font-size:16px; font-weight:600; line-height:1.4; margin:0 0 4px; }
+  .kb-pane .list-toolbar { margin: 12px 0; }
+  .kb-pane .search-box { max-width:240px; flex:0 1 240px; }
   @media (max-width: 1050px) { .org-pane { width:220px; } }
   @media (max-width: 760px) { .content { padding:8px; overflow:auto; } .workspace-card { flex-direction:column; } .org-pane { width:auto; max-height:320px; border-right:none; border-bottom:1px solid #f0f0f0; } .table-footer .footer-batch { position:static; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
@@ -1329,7 +1332,6 @@ table.data tr:hover td { background: #fafafa; }
                   <button class="btn btn-sm" type="button" id="btn-expand-all" title="展开或折叠">展开</button>
                 </div>
               </div>
-              <p class="org-pane-note">只读投影。选中后展示该节点及下级用户。</p>
               <div class="panel-body">
                 <div class="tree" id="org-tree"></div>
               </div>
@@ -1356,7 +1358,6 @@ table.data tr:hover td { background: #fafafa; }
                     <button class="batch-action-item" type="button" role="menuitem" data-batch-action="revoke" disabled>批量回收角色</button>
                   </div>
                 </div>
-                <span class="selection-note">仅修改功能角色，不改变组织归属或直接资源授权</span>
                 <button class="text-btn" type="button" id="btn-exit-batch">完成</button>
               </div>
               <div class="table-wrap">
@@ -1374,10 +1375,7 @@ table.data tr:hover td { background: #fafafa; }
                   </thead>
                   <tbody id="user-tbody"></tbody>
                 </table>
-                <div class="empty-state" id="user-empty" style="display:none">
-                  <strong>当前范围暂无用户</strong>
-                  <div>调整组织节点或搜索条件后重试。</div>
-                </div>
+                <div class="empty-state" id="user-empty" style="display:none">暂无数据</div>
               </div>
               <div class="table-footer">
                 <div class="footer-batch">
@@ -1390,135 +1388,103 @@ table.data tr:hover td { background: #fafafa; }
           </div>
         </section>
 
-        <!-- Page: 知识库权限示例（实例 ACL） -->
         <section class="page" id="page-kb-perm">
-          <div class="kb-demo panel">
-            <div class="kb-demo-header">
-              <div class="kb-demo-title">
-                <span class="kb-back">←</span>
-                <span class="kb-ico">📘</span>
-                <h2>测试知识库</h2>
+          <div class="workspace-card">
+            <div class="kb-pane">
+              <h1>测试知识库</h1>
+              <div class="kb-tabs" id="kb-tabs">
+                <button class="kb-tab" type="button" data-kb-tab="basic">基本信息</button>
+                <button class="kb-tab active" type="button" data-kb-tab="perm">公开性设置</button>
               </div>
-              <div class="kb-demo-hint">有效权限 = 组织（含上级）授权 ∪ 用户直接授权。直接授权跟随人员，组织变化后不清除。登录匹配不会改写功能角色或直接授权。</div>
-            </div>
-            <div class="kb-layout">
-              <aside class="kb-side">
-                <button class="kb-side-item" type="button" disabled>文件</button>
-                <button class="kb-side-item active" type="button">设置</button>
-              </aside>
-              <div class="kb-main">
-                <div class="kb-tabs" id="kb-tabs">
-                  <button class="kb-tab" type="button" data-kb-tab="basic">基本信息</button>
-                  <button class="kb-tab active" type="button" data-kb-tab="perm">公开性设置</button>
+
+              <div class="kb-tab-panel" id="kb-panel-basic">
+                <div class="form-row">
+                  <label>知识库名称</label>
+                  <input class="input" value="测试知识库" readonly />
+                </div>
+                <div class="form-row">
+                  <label>描述</label>
+                  <textarea class="textarea" readonly></textarea>
+                </div>
+              </div>
+
+              <div class="kb-tab-panel active" id="kb-panel-perm">
+                <div class="kb-section">
+                  <h3>知识库访问权限</h3>
+                  <div class="visibility-radios" id="kb-visibility">
+                    <label class="vis-option">
+                      <input type="radio" name="kb-vis" value="restricted" checked />
+                      <span><strong>受限访问</strong></span>
+                    </label>
+                    <label class="vis-option">
+                      <input type="radio" name="kb-vis" value="public" />
+                      <span><strong>公开访问</strong></span>
+                    </label>
+                  </div>
                 </div>
 
-                <div class="kb-tab-panel" id="kb-panel-basic">
-                  <div class="form-row">
-                    <label>知识库名称</label>
-                    <input class="input" value="测试知识库" readonly />
+                <div class="kb-section">
+                  <div class="kb-section-head">
+                    <h3>组织授权</h3>
+                    <button class="btn" type="button" id="btn-add-kb-org-grant">添加组织授权</button>
                   </div>
-                  <div class="form-row">
-                    <label>描述</label>
-                    <textarea class="textarea" readonly>POC 示意：基本信息页为占位，权限交互见「公开性设置」。</textarea>
+                  <div class="table-wrap">
+                    <table class="data">
+                      <thead>
+                        <tr>
+                          <th>组织节点</th>
+                          <th>资源角色</th>
+                          <th>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody id="kb-org-grant-tbody"></tbody>
+                    </table>
                   </div>
                 </div>
 
-                <div class="kb-tab-panel active" id="kb-panel-perm">
-                  <div class="kb-section">
-                    <h3>公开性设置</h3>
-                    <div class="form-row" style="margin-bottom:8px">
-                      <label>知识库访问权限</label>
-                    </div>
-                    <div class="visibility-radios" id="kb-visibility">
-                      <label class="vis-option">
-                        <input type="radio" name="kb-vis" value="restricted" checked />
-                        <span>
-                          <strong>受限访问</strong>
-                          <small>仅限明确授权的用户访问当前知识库</small>
-                        </span>
-                      </label>
-                      <label class="vis-option">
-                        <input type="radio" name="kb-vis" value="public" />
-                        <span>
-                          <strong>公开访问</strong>
-                          <small>平台内所有用户，均可访问当前知识库</small>
-                        </span>
-                      </label>
+                <div class="kb-section">
+                  <div class="kb-section-head">
+                    <h3>有效权限</h3>
+                  </div>
+                  <div class="table-wrap">
+                    <table class="data">
+                      <thead>
+                        <tr>
+                          <th>姓名</th>
+                          <th>账号</th>
+                          <th>来源</th>
+                          <th>有效角色</th>
+                        </tr>
+                      </thead>
+                      <tbody id="kb-effective-tbody"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="kb-section">
+                  <div class="kb-section-head">
+                    <h3>直接授权</h3>
+                    <div class="btn-group">
+                      <div class="search-box icon-right">
+                        <input class="input" id="kb-member-search" placeholder="请输入搜索内容" aria-label="搜索成员" />
+                        <span class="search-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+                      </div>
+                      <button class="btn" type="button" id="btn-add-kb-member-single">单个添加</button>
+                      <button class="btn btn-primary" type="button" id="btn-add-kb-member-org">按组织筛选添加</button>
                     </div>
                   </div>
-
-                  <div class="kb-section">
-                    <div class="kb-section-head">
-                      <div>
-                        <h3>组织授权</h3>
-                        <p class="kb-note">授予某个组织节点后，该节点及其全部下级中、已同步到此节点的用户获得对应资源角色。没有员工工号、因而没有组织归属的用户不受组织授权影响。</p>
-                      </div>
-                      <button class="btn" type="button" id="btn-add-kb-org-grant">添加组织授权</button>
-                    </div>
-                    <div class="table-wrap">
-                      <table class="data">
-                        <thead>
-                          <tr>
-                            <th>组织节点</th>
-                            <th>资源角色</th>
-                            <th>操作</th>
-                          </tr>
-                        </thead>
-                        <tbody id="kb-org-grant-tbody"></tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div class="kb-section">
-                    <div class="kb-section-head">
-                      <div>
-                        <h3>有效权限</h3>
-                        <p class="kb-note">按当前组织归属与直接授权实时计算。调整员工工号并重新同步后，直接授权仍在，组织授权随新的组织归属变化。</p>
-                      </div>
-                    </div>
-                    <div class="table-wrap">
-                      <table class="data">
-                        <thead>
-                          <tr>
-                            <th>姓名</th>
-                            <th>账号</th>
-                            <th>来源</th>
-                            <th>有效角色</th>
-                          </tr>
-                        </thead>
-                        <tbody id="kb-effective-tbody"></tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div class="kb-section">
-                    <div class="kb-section-head">
-                      <div>
-                        <h3>直接授权</h3>
-                        <p class="kb-note">按用户写入。创建者固定为所有者，已有成员不会重复添加。</p>
-                      </div>
-                      <div class="btn-group">
-                        <div class="search-box">
-                          <span class="search-ico">⌕</span>
-                          <input class="input" id="kb-member-search" placeholder="搜索用户名/姓名" />
-                        </div>
-                        <button class="btn" type="button" id="btn-add-kb-member-single">单个添加</button>
-                        <button class="btn btn-primary" type="button" id="btn-add-kb-member-org">按组织筛选添加</button>
-                      </div>
-                    </div>
-                    <div class="table-wrap">
-                      <table class="data">
-                        <thead>
-                          <tr>
-                            <th>账号</th>
-                            <th>姓名</th>
-                            <th>角色</th>
-                            <th>操作</th>
-                          </tr>
-                        </thead>
-                        <tbody id="kb-member-tbody"></tbody>
-                      </table>
-                    </div>
+                  <div class="table-wrap">
+                    <table class="data">
+                      <thead>
+                        <tr>
+                          <th>账号</th>
+                          <th>姓名</th>
+                          <th>角色</th>
+                          <th>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody id="kb-member-tbody"></tbody>
+                    </table>
                   </div>
                 </div>
               </div>
@@ -1551,7 +1517,7 @@ table.data tr:hover td { background: #fafafa; }
           </div>
           <div class="form-row" id="uf-password-row">
             <label>密码<span class="req">*</span></label>
-            <input class="input" id="uf-password" type="password" placeholder="至少 6 位" />
+            <input class="input" id="uf-password" type="password" />
             <div class="field-error" id="err-password">请填写密码（至少 6 位）</div>
           </div>
           <div class="form-row">
@@ -1569,20 +1535,11 @@ table.data tr:hover td { background: #fafafa; }
           </div>
           <div class="form-row">
             <label for="uf-employee-no">员工工号</label>
-            <input class="input" id="uf-employee-no" maxlength="32" placeholder="有工号才会向客户系统同步" />
-            <div class="sync-note" id="uf-sync-note">无员工工号时不请求同步，也没有组织归属。</div>
+            <input class="input" id="uf-employee-no" maxlength="32" />
           </div>
           <div class="form-row">
             <label for="uf-customer-info">用户信息</label>
-            <div class="form-hint">客户系统同步回来的原始 JSON，只读。组织、岗位等都在这段内容里，不拆成可编辑字段。</div>
-            <textarea class="textarea json-view" id="uf-customer-info" readonly placeholder="未同步客户用户信息"></textarea>
-          </div>
-          <div class="form-row" id="uf-sso-row">
-            <label>登录匹配</label>
-            <div class="sync-note" id="uf-sso">未绑定。若绑定，使用 provider + provider_user_id，登录不会改写功能角色或直接资源授权。</div>
-            <div class="sso-actions">
-              <button class="btn btn-sm" type="button" id="btn-simulate-sso" hidden>模拟登录</button>
-            </div>
+            <textarea class="textarea json-view" id="uf-customer-info" readonly></textarea>
           </div>
         </form>
       </div>
@@ -1601,13 +1558,11 @@ table.data tr:hover td { background: #fafafa; }
       <div class="modal-header">
         <div>
           <h3 id="batch-modal-title">批量赋予角色</h3>
-        <div class="modal-subtitle">只修改已勾选用户的功能角色，不改变组织归属或直接资源授权</div>
         </div>
         <button class="btn-icon" type="button" data-close="modal-batch">✕</button>
       </div>
       <div class="modal-body">
         <p class="confirm-text" style="margin-bottom:12px" id="batch-scope-text"></p>
-        <div class="form-hint" style="margin-bottom:12px">角色操作将直接作用于用户列表中已勾选的用户；如需调整范围，请先关闭弹窗，在左侧组织树或用户搜索中重新筛选并勾选用户。</div>
         <div class="form-row" style="margin-top:14px">
           <label>选择角色<span class="req">*</span></label>
           <div class="checkbox-group" id="batch-roles"></div>
@@ -1628,7 +1583,6 @@ table.data tr:hover td { background: #fafafa; }
       <div class="modal-header">
         <div>
           <h3>添加组织授权</h3>
-          <div class="modal-subtitle">授权作用于所选节点及其全部下级</div>
         </div>
         <button class="btn-icon" type="button" data-close="modal-kb-org-grant" aria-label="关闭">✕</button>
       </div>
@@ -1676,8 +1630,7 @@ table.data tr:hover td { background: #fafafa; }
     <div class="modal">
       <div class="modal-header">
         <div>
-          <h3>单个添加成员权限</h3>
-        <div class="modal-subtitle">先搜索用户，再从搜索结果中选择一名成员</div>
+          <h3>单个添加</h3>
         </div>
         <button class="btn-icon" type="button" data-close="modal-kb-single-member">✕</button>
       </div>
@@ -1686,13 +1639,13 @@ table.data tr:hover td { background: #fafafa; }
           <label>搜索用户<span class="req">*</span></label>
           <div class="search-box">
             <span class="search-ico">⌕</span>
-            <input class="input" id="kb-single-member-query" placeholder="搜索用户名 / 账号 / 邮箱" />
+            <input class="input" id="kb-single-member-query" placeholder="请输入搜索内容" />
           </div>
         </div>
         <div class="form-row">
           <label>用户列表</label>
           <div class="kb-member-list" id="kb-single-member-picker"></div>
-          <div class="empty-state kb-member-empty" id="kb-single-member-empty" style="display:none">没有匹配的可添加用户</div>
+          <div class="empty-state kb-member-empty" id="kb-single-member-empty" style="display:none">暂无数据</div>
           <div class="field-error" id="err-kb-single-member">请选择一名用户</div>
         </div>
         <div class="kb-member-permission-row">
@@ -1714,8 +1667,7 @@ table.data tr:hover td { background: #fafafa; }
     <div class="modal wide kb-member-modal">
       <div class="modal-header">
         <div>
-          <h3>按组织筛选添加成员权限</h3>
-          <div class="modal-subtitle">先选择组织筛选条件，再从用户结果中勾选成员</div>
+          <h3>按组织筛选添加</h3>
         </div>
         <button class="btn-icon" type="button" data-close="modal-kb-members">✕</button>
       </div>
@@ -1728,11 +1680,10 @@ table.data tr:hover td { background: #fafafa; }
             <div class="picker-title">组织筛选</div>
             <div class="search-box kb-org-search">
               <span class="search-ico">⌕</span>
-              <input class="input" id="kb-org-search" placeholder="搜索公司 / 子公司 / 部门 / 岗位" />
+              <input class="input" id="kb-org-search" placeholder="请输入搜索内容" />
             </div>
             <button class="kb-clear-org" type="button" id="kb-clear-org">全部组织</button>
             <div class="org-picker kb-org-picker" id="kb-org-picker"></div>
-            <div class="form-hint">这里写入的是用户直接授权。组织节点只负责筛人，确认后仍按用户逐条保存，并跟随该用户。</div>
           </div>
           <div class="kb-member-results">
             <div class="picker-title">成员列表</div>
@@ -1741,7 +1692,7 @@ table.data tr:hover td { background: #fafafa; }
               <span id="kb-result-count" class="form-hint">0 人</span>
             </div>
             <div class="kb-member-list" id="kb-member-picker"></div>
-            <div class="empty-state kb-member-empty" id="kb-member-picker-empty" style="display:none">当前筛选下没有可添加用户</div>
+            <div class="empty-state kb-member-empty" id="kb-member-picker-empty" style="display:none">暂无数据</div>
           </div>
         </div>
         <div class="kb-member-permission-row">
@@ -1750,7 +1701,6 @@ table.data tr:hover td { background: #fafafa; }
             <option value="editor">编辑者</option>
             <option value="viewer">使用者</option>
           </select>
-          <span class="form-hint">确认后按用户逐个写入直接授权；已有成员不会重复添加。</span>
         </div>
       </div>
       <div class="modal-footer">
@@ -1763,7 +1713,7 @@ table.data tr:hover td { background: #fafafa; }
   <div class="toast-wrap" id="toast-wrap"></div>
 
   <script>
-/* 组织与用户 · 本地可点原型 */
+/* 组织与用户 */
 (function () {
   "use strict";
 
@@ -2024,18 +1974,18 @@ table.data tr:hover td { background: #fafafa; }
   };
 
   let users = [
-    { id: "u1", name: "张伟", account: "zhangwei", email: "zhangwei@xinghe.example", phone: "13800001111", roleIds: ["r-admin"], employeeNo: "XH10021", sso: { provider: "customer-sso", providerUserId: "sso-zhangwei" } },
-    { id: "u2", name: "李娜", account: "lina", email: "lina@xinghe.example", phone: "13800002222", roleIds: ["r-sub"], employeeNo: "XH10022", sso: null },
-    { id: "u3", name: "王强", account: "wangqiang", email: "", phone: "13800003333", roleIds: ["r-user"], employeeNo: "XH10023", sso: null },
-    { id: "u4", name: "赵敏", account: "zhaomin", email: "zhaomin@xinghe.example", phone: "13800004444", roleIds: ["r-ops", "r-user"], employeeNo: "XH10024", sso: { provider: "customer-sso", providerUserId: "sso-zhaomin" } },
-    { id: "u5", name: "陈晨", account: "chenchen", email: "chenchen@xinghe.example", phone: "", roleIds: ["r-user"], employeeNo: "XH10025", sso: null },
-    { id: "u6", name: "刘洋", account: "liuyang", email: "liuyang@xinghe.example", phone: "13900006666", roleIds: ["r-user"], employeeNo: "XH20001", sso: null },
-    { id: "u7", name: "周芳", account: "zhoufang", email: "", phone: "", roleIds: ["r-ops"], employeeNo: "", sso: null },
-    { id: "u8", name: "吴磊", account: "wulei", email: "wulei@xinghe.example", phone: "13700008888", roleIds: ["r-user"], employeeNo: "XH10026", sso: null },
-    { id: "u9", name: "郑爽", account: "zhengshuang", email: "", phone: "13600009999", roleIds: ["r-sub"], employeeNo: "XH10027", sso: null },
-    { id: "u10", name: "孙浩", account: "sunhao", email: "sunhao@xinghe.example", phone: "", roleIds: ["r-user"], employeeNo: "", sso: null },
-    { id: "u11", name: "尹悦", account: "yinyue", email: "", phone: "", roleIds: ["r-user"], employeeNo: "XH10028", sso: null },
-    { id: "u12", name: "丁岚", account: "dinglan", email: "dinglan@xinghe.example", phone: "13600001212", roleIds: ["r-sub"], employeeNo: "", sso: null },
+    { id: "u1", name: "张伟", account: "zhangwei", email: "zhangwei@xinghe.example", phone: "13800001111", roleIds: ["r-admin"], employeeNo: "XH10021" },
+    { id: "u2", name: "李娜", account: "lina", email: "lina@xinghe.example", phone: "13800002222", roleIds: ["r-sub"], employeeNo: "XH10022" },
+    { id: "u3", name: "王强", account: "wangqiang", email: "", phone: "13800003333", roleIds: ["r-user"], employeeNo: "XH10023" },
+    { id: "u4", name: "赵敏", account: "zhaomin", email: "zhaomin@xinghe.example", phone: "13800004444", roleIds: ["r-ops", "r-user"], employeeNo: "XH10024" },
+    { id: "u5", name: "陈晨", account: "chenchen", email: "chenchen@xinghe.example", phone: "", roleIds: ["r-user"], employeeNo: "XH10025" },
+    { id: "u6", name: "刘洋", account: "liuyang", email: "liuyang@xinghe.example", phone: "13900006666", roleIds: ["r-user"], employeeNo: "XH20001" },
+    { id: "u7", name: "周芳", account: "zhoufang", email: "", phone: "", roleIds: ["r-ops"], employeeNo: "" },
+    { id: "u8", name: "吴磊", account: "wulei", email: "wulei@xinghe.example", phone: "13700008888", roleIds: ["r-user"], employeeNo: "XH10026" },
+    { id: "u9", name: "郑爽", account: "zhengshuang", email: "", phone: "13600009999", roleIds: ["r-sub"], employeeNo: "XH10027" },
+    { id: "u10", name: "孙浩", account: "sunhao", email: "sunhao@xinghe.example", phone: "", roleIds: ["r-user"], employeeNo: "" },
+    { id: "u11", name: "尹悦", account: "yinyue", email: "", phone: "", roleIds: ["r-user"], employeeNo: "XH10028" },
+    { id: "u12", name: "丁岚", account: "dinglan", email: "dinglan@xinghe.example", phone: "13600001212", roleIds: ["r-sub"], employeeNo: "" },
   ];
 
   const kbCandidateUsers = [{ account: "haha", name: "hh", email: "haha@example.com" }].concat(
@@ -2322,10 +2272,7 @@ table.data tr:hover td { background: #fafafa; }
 
   document.querySelectorAll(".nav-item").forEach((btn) => {
     btn.addEventListener("click", () => {
-      if (!btn.dataset.page) {
-        toast((btn.dataset.placeholder || "该菜单") + " 为生产侧栏示意，本 POC 未实现该页面", "info");
-        return;
-      }
+      if (!btn.dataset.page) return;
       const page = btn.dataset.page;
       state.page = page;
       document.querySelectorAll(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.page === page));
@@ -2334,9 +2281,6 @@ table.data tr:hover td { background: #fafafa; }
       if (crumb) crumb.textContent = PAGE_TITLES[page] || page;
       if (page === "kb-perm") renderKbPerm();
     });
-  });
-  document.getElementById("btn-goto-agent").addEventListener("click", () => {
-    toast("本 POC 不跳转 Agent 平台", "info");
   });
 
   // ——— Render org tree ———
@@ -2587,7 +2531,7 @@ table.data tr:hover td { background: #fafafa; }
     document.getElementById("user-pagination-label").textContent = `显示 ${page.items.length} 人，共 ${list.length} 人`;
     if (state.selectedOrgId) {
       hint.style.display = "flex";
-      hintText.textContent = `${node ? node.name : ""}（含下级）`;
+      hintText.textContent = node ? node.name : "";
     } else hint.style.display = "none";
 
     const table = tbody.closest("table");
@@ -2675,35 +2619,6 @@ table.data tr:hover td { background: #fafafa; }
       .join("");
   }
 
-  function syncResultMessage(result, prefix) {
-    if (result === "matched") return prefix + "，已按员工工号同步客户用户信息";
-    if (result === "unmatched") return prefix + "。客户系统无匹配用户，仅保存员工工号，未写入用户信息，也未自动授权";
-    return prefix + "。无员工工号，未请求同步，已清除组织归属";
-  }
-
-  function describeSync(user) {
-    if (!user || !(user.employeeNo || "").trim()) {
-      return "无员工工号：不请求客户用户信息同步，无组织归属，仅保留直接授权。";
-    }
-    if (!(user.customerInfo || "").trim()) {
-      return "已保存员工工号 " + user.employeeNo + "。客户系统没有匹配用户，未写入用户信息，未自动授权，无组织归属。";
-    }
-    const org = user.orgId ? pathLabel(user.orgId) : "无";
-    return "已按员工工号 " + user.employeeNo + " 同步。当前组织归属：" + org + "。组织归属来自同步结果，不能在此手改。";
-  }
-
-  function renderSso(user) {
-    const note = document.getElementById("uf-sso");
-    const button = document.getElementById("btn-simulate-sso");
-    if (user && user.sso) {
-      note.textContent = user.sso.provider + " + " + user.sso.providerUserId + "。登录只做身份匹配，不会改写功能角色或直接资源授权。";
-      button.hidden = false;
-    } else {
-      note.textContent = "未绑定。若绑定，使用 provider + provider_user_id，登录不会改写功能角色或直接资源授权。";
-      button.hidden = true;
-    }
-  }
-
   function deleteUser(user) {
     confirmDialog("删除用户", `确定删除用户 <strong>${escapeHtml(user.name)}</strong>（${escapeHtml(user.account)}）？此操作不可恢复。`, () => {
       users = users.filter((item) => item.id !== user.id);
@@ -2734,12 +2649,9 @@ table.data tr:hover td { background: #fafafa; }
   function confirmEmployeeNoChange(user, next, onOk) {
     const from = user.employeeNo || "空";
     const to = next || "空";
-    const detail = next
-      ? "确认后按新工号自动重新同步一次。客户系统有匹配用户时写入用户信息并更新组织归属；没有匹配用户时只保存工号，不写入客户用户信息，也不自动授权。"
-      : "确认后不再同步，并移除组织归属与已同步的用户信息。";
     confirmDialog(
       "确认变更员工工号",
-      `员工工号将从 <strong>${escapeHtml(from)}</strong> 改为 <strong>${escapeHtml(to)}</strong>。${detail}功能角色与直接资源授权保持不变。`,
+      `确认将员工工号从 <strong>${escapeHtml(from)}</strong> 改为 <strong>${escapeHtml(to)}</strong>？`,
       onOk,
       { danger: false, okText: "确认并同步" }
     );
@@ -2763,9 +2675,7 @@ table.data tr:hover td { background: #fafafa; }
       document.getElementById("uf-phone").value = user.phone || "";
       document.getElementById("uf-employee-no").value = user.employeeNo || "";
       document.getElementById("uf-customer-info").value = user.customerInfo || "";
-      document.getElementById("uf-sync-note").textContent = describeSync(user);
       fillRoleCheckboxes("uf-roles", user.roleIds);
-      renderSso(user);
     } else {
       document.getElementById("uf-id").value = "";
       document.getElementById("uf-name").value = "";
@@ -2775,9 +2685,7 @@ table.data tr:hover td { background: #fafafa; }
       document.getElementById("uf-phone").value = "";
       document.getElementById("uf-employee-no").value = "";
       document.getElementById("uf-customer-info").value = "";
-      document.getElementById("uf-sync-note").textContent = "保存时如填写了员工工号，会向客户系统尝试同步一次。";
       fillRoleCheckboxes("uf-roles", ["r-user"]);
-      renderSso(null);
     }
     openModal("modal-user");
   }
@@ -2816,30 +2724,6 @@ table.data tr:hover td { background: #fafafa; }
     const user = users.find((item) => item.id === state.editingUserId);
     if (user) deleteUser(user);
   });
-  document.getElementById("btn-simulate-sso").addEventListener("click", () => {
-    const user = users.find((item) => item.id === state.editingUserId);
-    if (!user || !user.sso) return;
-    const roleNames = user.roleIds.map((id) => {
-      const role = roles.find((item) => item.id === id);
-      return role ? role.name : id;
-    }).join("、");
-    toast(`已使用 ${user.sso.provider} + ${user.sso.providerUserId} 匹配登录。功能角色（${roleNames}）与直接资源授权未改写。`);
-  });
-  document.getElementById("uf-employee-no").addEventListener("input", () => {
-    const user = users.find((item) => item.id === state.editingUserId);
-    const next = document.getElementById("uf-employee-no").value.trim();
-    if (!user) {
-      document.getElementById("uf-sync-note").textContent = next
-        ? "保存时会按该员工工号尝试同步一次。"
-        : "保存时如填写了员工工号，会向客户系统尝试同步一次。";
-      return;
-    }
-    if (next !== (user.employeeNo || "")) {
-      document.getElementById("uf-sync-note").textContent = "员工工号已修改。保存时会再次确认，确认后才按新工号重新同步。";
-    } else {
-      document.getElementById("uf-sync-note").textContent = describeSync(user);
-    }
-  });
 
   document.getElementById("btn-save-user").addEventListener("click", () => {
     const fields = readUserFields();
@@ -2873,13 +2757,11 @@ table.data tr:hover td { background: #fafafa; }
         employeeNo: "",
         customerInfo: "",
         orgId: null,
-        sso: null,
       };
-      let message = "已创建用户 " + fields.name + "。无员工工号，未请求同步";
-      if (fields.employeeNo) message = syncResultMessage(syncCustomerUserInfo(user, fields.employeeNo), "已创建用户 " + fields.name);
+      if (fields.employeeNo) syncCustomerUserInfo(user, fields.employeeNo);
       users.push(user);
       kbCandidateUsers.push({ account: user.account, name: user.name, email: user.email || "" });
-      finishSave(message);
+      finishSave("已创建用户 " + fields.name);
       return;
     }
     const user = users.find((item) => item.id === state.editingUserId);
@@ -2888,8 +2770,8 @@ table.data tr:hover td { background: #fafafa; }
     const commit = () => {
       applyPlatformFields(user, fields);
       retargetDirectGrants(previousAccount, user);
-      if (changedNo) finishSave(syncResultMessage(syncCustomerUserInfo(user, fields.employeeNo), "已保存用户 " + user.name));
-      else finishSave("已保存用户 " + user.name + "。员工工号未变化，未重新同步");
+      if (changedNo) syncCustomerUserInfo(user, fields.employeeNo);
+      finishSave("已保存");
     };
     if (changedNo) confirmEmployeeNoChange(user, fields.employeeNo, commit);
     else commit();
@@ -2900,7 +2782,7 @@ table.data tr:hover td { background: #fafafa; }
     state.batchOperation = operation;
     document.getElementById("batch-modal-title").textContent = operation === "grant" ? "批量赋予角色" : "批量回收角色";
     const selected = selectedBatchUsers();
-    document.getElementById("batch-scope-text").innerHTML = `已选用户：<strong id="batch-selected-user-count">${selected.length} 人</strong>。本次操作仅修改这些用户的角色关系。`;
+    document.getElementById("batch-scope-text").innerHTML = `已选 <strong id="batch-selected-user-count">${selected.length}</strong> 人`;
     document.getElementById("btn-do-batch").style.display = operation === "grant" ? "" : "none";
     document.getElementById("btn-do-batch-revoke").style.display = operation === "revoke" ? "" : "none";
     fillRoleCheckboxes("batch-roles", []);
@@ -3130,7 +3012,7 @@ table.data tr:hover td { background: #fafafa; }
         <span class="member-org">${escapeHtml(path)}</span>
       </label>`;
     }).join("") : "";
-    empty.textContent = state.kbOrgId ? "当前组织筛选下没有可添加用户" : "请先选择一个组织节点";
+    empty.textContent = "暂无数据";
     empty.style.display = list.length ? "none" : "block";
     resultCount.textContent = `${list.length} 人`;
     selectedCount.textContent = `已选 ${state.kbSelectedAccounts.size} 人`;
@@ -3153,8 +3035,7 @@ table.data tr:hover td { background: #fafafa; }
     const query = (state.kbSingleMemberQuery || "").trim().toLowerCase();
     if (!query) {
       picker.innerHTML = "";
-      empty.textContent = "请输入搜索关键词";
-      empty.style.display = "block";
+      empty.style.display = "none";
       return;
     }
     const memberAccounts = new Set(kbMembers.map((member) => member.account.toLowerCase()));
@@ -3245,7 +3126,7 @@ table.data tr:hover td { background: #fafafa; }
   function renderKbOrgGrants() {
     const tbody = document.getElementById("kb-org-grant-tbody");
     if (!kbOrgGrants.length) {
-      tbody.innerHTML = '<tr><td colspan="3" class="muted">尚未添加组织授权</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="3" class="muted">暂无数据</td></tr>';
       return;
     }
     tbody.innerHTML = kbOrgGrants.map((grant, index) => `<tr>
@@ -3291,7 +3172,7 @@ table.data tr:hover td { background: #fafafa; }
       <td>${escapeHtml(row.account)}</td>
       <td>${escapeHtml(row.source)}</td>
       <td>${escapeHtml(KB_ROLE_LABEL[row.role] || row.role)}</td>
-    </tr>`).join("") : '<tr><td colspan="4" class="muted">当前没有组织授权或直接授权</td></tr>';
+    </tr>`).join("") : '<tr><td colspan="4" class="muted">暂无数据</td></tr>';
   }
 
   function renderKbGrantPicker() {
@@ -3325,7 +3206,7 @@ table.data tr:hover td { background: #fafafa; }
     if (existing) existing.role = role;
     else kbOrgGrants.push({ orgId: state.kbGrantOrgId, role });
     closeModal("modal-kb-org-grant");
-    toast("已写入组织授权，作用于该节点及下级");
+    toast("已添加");
     renderKbPerm();
   }
 

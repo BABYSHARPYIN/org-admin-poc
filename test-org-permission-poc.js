@@ -37,8 +37,11 @@ must(html.includes("确认变更员工工号"), "employee number change confirma
 must(html.includes("function syncCustomerUserInfo"), "customer sync function is missing");
 must(!html.slice(html.indexOf("function syncCustomerUserInfo"), html.indexOf("function typeIcon")).includes("roleIds"), "sync must not rewrite feature roles");
 must(!html.slice(html.indexOf("function syncCustomerUserInfo"), html.indexOf("function typeIcon")).includes("kbMembers"), "sync must not rewrite direct grants");
-must(html.includes("provider_user_id") || html.includes("providerUserId"), "SSO match fields should be represented");
-must(html.includes("不会改写功能角色或直接资源授权") || html.includes("不会改写功能角色与直接资源授权") || html.includes("未改写"), "SSO login must say it does not overwrite roles or direct grants");
+must(!html.includes("登录匹配"), "SSO match copy should be removed");
+must(!html.includes("模拟登录"), "SSO simulation control should be removed");
+must(!html.includes("providerUserId") && !html.includes("provider_user_id"), "SSO match fields should be removed");
+must(!html.includes("本 POC"), "demo-only copy should be removed");
+must(!html.includes("请输入搜索关键词"), "search empty state should not instruct the user");
 must(html.includes("id=\"btn-batch-actions\""), "batch actions menu trigger is missing");
 must(html.includes("data-batch-action=\"grant\""), "batch grant submenu item is missing");
 must(html.includes("data-batch-action=\"revoke\""), "batch revoke submenu item is missing");
@@ -57,7 +60,7 @@ must(html.includes("id=\"modal-kb-members\""), "organization resource member mod
 must(!html.includes("id=\"kb-member-query\""), "organization resource entry should not have a user search box");
 must(!html.includes("state.kbMemberQuery"), "organization resource entry should not keep user search state");
 must(html.includes("if (!state.kbOrgId) return [];"), "organization members should stay hidden before an organization is selected");
-must(html.includes("empty.textContent = \"请输入搜索关键词\""), "single member details should stay hidden before search");
+must(html.includes("if (!query)"), "single member details should stay hidden before search");
 must(html.includes("有效权限"), "effective permission explanation is missing");
 must(readme.includes("刷新组织"), "README should describe organization refresh");
 must(readme.includes("gh-pages"), "README should explain GitHub Pages publishing");
