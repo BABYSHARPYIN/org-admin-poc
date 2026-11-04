@@ -1355,7 +1355,7 @@ table.data tr:hover td { background: #fafafa; }
 
 
   <!-- Modal: Resource authorization picker -->
-  <div class="modal-mask" id="modal-kb-member-picker"><div class="modal wide"><div class="modal-header"><div><h3>添加授权</h3><div class="modal-subtitle">选择组织或成员，并设置其在当前知识库中的角色</div></div><button class="btn-icon" type="button" data-close="modal-kb-member-picker">✕</button></div><div class="modal-body"><div class="kb-member-picker-layout"><div class="kb-member-org-filter"><div class="picker-title">添加成员</div><div class="search-box kb-org-search"><span class="search-ico">⌕</span><input class="input" id="kb-auth-search" placeholder="搜索成员或组织节点" /></div><div class="form-hint">搜索前不展示组织节点；输入姓名、账号或组织名称后选择一名用户或一个组织节点。</div><div class="org-picker" id="kb-auth-picker"></div></div><div class="kb-member-results"><div class="form-row"><label>访问角色<span class="req">*</span></label><select class="input" id="kb-auth-role"><option value="admin">管理员</option><option value="editor">编辑者</option><option value="viewer">查看者</option></select></div><div class="form-hint">组织节点仅用于筛选成员，最终授权对象仍是勾选的用户。</div><div class="field-error" id="err-kb-auth">请选择一个授权对象</div></div></div></div><div class="modal-footer"><button class="btn" type="button" data-close="modal-kb-member-picker">取消</button><button class="btn btn-primary" type="button" id="btn-confirm-kb-member">确认授权</button></div></div></div>
+  <div class="modal-mask" id="modal-kb-member-picker"><div class="modal wide"><div class="modal-header"><div><h3>添加授权</h3><div class="modal-subtitle">选择组织或成员，并设置其在当前知识库中的角色</div></div><button class="btn-icon" type="button" data-close="modal-kb-member-picker">✕</button></div><div class="modal-body"><div class="kb-member-picker-layout"><div class="kb-member-org-filter"><div class="picker-title">添加成员</div><div class="search-box kb-org-search"><span class="search-ico">⌕</span><input class="input" id="kb-auth-search" placeholder="搜索成员或组织节点" /></div><div class="form-hint">搜索前不展示组织节点；输入姓名、账号或组织名称后选择一名用户或一个组织节点。</div><div class="org-picker" id="kb-auth-picker"></div></div><div class="kb-member-results"><div class="form-row"><label>访问角色<span class="req">*</span></label><select class="input" id="kb-auth-role"><option value="editor">编辑者</option><option value="viewer">使用者</option></select></div><div class="form-hint">所有者由创建者固定担任，添加授权时仅可选编辑者或使用者。组织节点仅用于筛选成员，最终授权对象仍是勾选的用户。</div><div class="field-error" id="err-kb-auth">请选择一个授权对象</div></div></div></div><div class="modal-footer"><button class="btn" type="button" data-close="modal-kb-member-picker">取消</button><button class="btn btn-primary" type="button" id="btn-confirm-kb-member">确认授权</button></div></div></div>
 
   <div class="toast-wrap" id="toast-wrap"></div>
 
@@ -1741,9 +1741,10 @@ table.data tr:hover td { background: #fafafa; }
     { id: "binding-org-10021010-viewer", organizationRoleId: "kb-001-viewer", subjectType: "organization", subjectId: "jnrsf7p6wztd", subjectName: "信息项目处", customerOrgId: "10021010", fullPath: "00 中国核电 / 12 三门核电 / 22 综合管理部 / 10021010 信息项目处", resourceId: "kb-001", role: "viewer", scopes: ["kb:read"] },
   ];
   const kbUserRoleBindings = [
-    { id: "binding-user-zhangsan-admin", organizationRoleId: "kb-001-admin", subjectType: "user", subjectId: "zhangsan", subjectName: "张三", employeeNo: "80001001", account: "zhangsan", resourceId: "kb-001", role: "admin", scopes: ["kb:read", "kb:write", "kb:admin"] },
+    { id: "binding-user-zhangsan-owner", organizationRoleId: "kb-001-owner", subjectType: "user", subjectId: "zhangsan", subjectName: "张三", employeeNo: "80001001", account: "zhangsan", resourceId: "kb-001", role: "owner", scopes: ["kb:read", "kb:write", "kb:admin"] },
   ];
-  const KB_ROLE_LABEL = { admin: "管理员", editor: "编辑者", viewer: "查看者" };
+  const KB_ROLE_LABEL = { owner: "所有者", editor: "编辑者", viewer: "使用者" };
+  const KB_ASSIGNABLE_ROLES = { editor: "编辑者", viewer: "使用者" };
   const KB_SCOPE_LABEL = { "kb:read": "查看", "kb:write": "编辑", "kb:admin": "管理" };
   let kbVisibility = "restricted";
 
@@ -1755,7 +1756,7 @@ table.data tr:hover td { background: #fafafa; }
     account: employee.EMAIL.split("@")[0], email: employee.EMAIL, phone: employee.MOBILE,
     roleIds: featureRoleByAccount[employee.EMAIL.split("@")[0]] || ["r-user"],
     featureRoleIds: featureRoleByAccount[employee.EMAIL.split("@")[0]] || ["r-user"],
-    userCustomData: { customerEmployeeNo: employee.EMPLOYEE_NO, job: { code: employee.JOB_CODE, name: employee.JOB_NAME, level: employee.JOB_LEVEL }, appointments: [], directResourceRoleBindings: employee.EMPLOYEE_NO === "80001001" ? [{ resourceId: "kb-001", organizationRoleId: "kb-001-admin", scopes: ["kb:read", "kb:write", "kb:admin"] }] : [] },
+    userCustomData: { customerEmployeeNo: employee.EMPLOYEE_NO, job: { code: employee.JOB_CODE, name: employee.JOB_NAME, level: employee.JOB_LEVEL }, appointments: [], directResourceRoleBindings: employee.EMPLOYEE_NO === "80001001" ? [{ resourceId: "kb-001", organizationRoleId: "kb-001-owner", role: "owner", scopes: ["kb:read", "kb:write", "kb:admin"] }] : [] },
   }));
 
   // ——— State ———
@@ -2360,15 +2361,21 @@ table.data tr:hover td { background: #fafafa; }
   function renderKbMembers() {
     const tbody = document.getElementById("kb-member-tbody");
     const q = (state.kbMemberSearch || "").toLowerCase();
-    const list = [...kbOrgRoleBindings, ...kbUserRoleBindings].filter((binding) => !q || [getBindingMemberLabel(binding), binding.fullPath || "", binding.account || "", KB_ROLE_LABEL[binding.role]].some((value) => String(value).toLowerCase().includes(q)));
+    const list = [...kbOrgRoleBindings, ...kbUserRoleBindings].filter((binding) => !q || [getBindingMemberLabel(binding), binding.fullPath || "", binding.account || "", KB_ROLE_LABEL[binding.role] || ""].some((value) => String(value).toLowerCase().includes(q)));
+    list.sort((a, b) => Number(b.role === "owner") - Number(a.role === "owner"));
     tbody.innerHTML = list.map((binding) => {
       const info = getBindingOrganizationInfo(binding);
       const memberDetails = binding.subjectType === "organization"
         ? `<div class="user-primary"><span class="member-icon org-icon" aria-hidden="true">▣</span>${escapeHtml(binding.subjectName)}</div>`
         : `<div class="user-primary"><span class="member-icon user-icon" aria-hidden="true">●</span>${escapeHtml(binding.subjectName)}</div><div class="user-secondary">${escapeHtml(binding.account)}</div>`;
       const organizationDetails = `<div class="user-primary">${escapeHtml(info.name)}</div><div class="user-secondary path-cell" title="${escapeHtml(info.path)}">${escapeHtml(info.path)}</div>`;
-      const roleSelect = `<select class="kb-role-select" aria-label="${escapeHtml(binding.subjectName)}的知识库角色" data-binding-role="${escapeHtml(binding.id)}">${Object.entries(KB_ROLE_LABEL).map(([value, label]) => `<option value="${value}" ${binding.role === value ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>`;
-      return `<tr><td>${memberDetails}</td><td>${organizationDetails}</td><td>${roleSelect}</td><td><button class="link-danger" type="button" data-remove-binding="${escapeHtml(binding.id)}">移除</button></td></tr>`;
+      const roleCell = binding.role === "owner"
+        ? `<span class="owner-badge">所有者</span>`
+        : `<select class="kb-role-select" aria-label="${escapeHtml(binding.subjectName)}的知识库角色" data-binding-role="${escapeHtml(binding.id)}">${Object.entries(KB_ASSIGNABLE_ROLES).map(([value, label]) => `<option value="${value}" ${binding.role === value ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select>`;
+      const action = binding.role === "owner"
+        ? "—"
+        : `<button class="link-danger" type="button" data-remove-binding="${escapeHtml(binding.id)}">移除</button>`;
+      return `<tr><td>${memberDetails}</td><td>${organizationDetails}</td><td>${roleCell}</td><td>${action}</td></tr>`;
     }).join("");
     tbody.querySelectorAll("[data-binding-role]").forEach((select) => select.addEventListener("change", (event) => updateKbBindingRole(event.target.dataset.bindingRole, event.target.value)));
     tbody.querySelectorAll("[data-remove-binding]").forEach((button) => button.addEventListener("click", () => { const id = button.dataset.removeBinding; confirmDialog("移除授权", "确认移除该成员或组织的知识库授权？", () => { removeKbBinding(id); }); }));
@@ -2412,12 +2419,54 @@ table.data tr:hover td { background: #fafafa; }
   }
 
   function scopesForKbRole(role) {
-    return role === "admin" ? ["kb:read", "kb:write", "kb:admin"] : role === "editor" ? ["kb:read", "kb:write"] : ["kb:read"];
+    if (role === "owner") return ["kb:read", "kb:write", "kb:admin"];
+    if (role === "editor") return ["kb:read", "kb:write"];
+    return ["kb:read"];
+  }
+
+  function isLockedKbOwner(binding) {
+    return !!binding && binding.role === "owner";
+  }
+
+  function migrateKbBinding(binding) {
+    if (!binding) return binding;
+    const roleId = String(binding.organizationRoleId || "");
+    if (binding.role !== "admin" && !roleId.endsWith("-admin")) return binding;
+    return {
+      ...binding,
+      role: "owner",
+      organizationRoleId: roleId.endsWith("-admin") ? roleId.replace(/admin$/, "owner") : `${binding.resourceId || "kb-001"}-owner`,
+      scopes: scopesForKbRole("owner"),
+    };
+  }
+
+  function migrateDirectBinding(binding) {
+    if (!binding) return binding;
+    const roleId = String(binding.organizationRoleId || "");
+    if (binding.role !== "admin" && !roleId.endsWith("-admin")) return binding;
+    return {
+      ...binding,
+      role: "owner",
+      organizationRoleId: roleId.endsWith("-admin") ? roleId.replace(/admin$/, "owner") : "kb-001-owner",
+      scopes: scopesForKbRole("owner"),
+    };
+  }
+
+  function migrateLoadedKbRoles() {
+    for (const list of [kbOrgRoleBindings, kbUserRoleBindings]) {
+      for (let i = 0; i < list.length; i += 1) list[i] = migrateKbBinding(list[i]);
+    }
+    users.forEach((user) => {
+      const direct = user?.userCustomData?.directResourceRoleBindings;
+      if (Array.isArray(direct)) user.userCustomData.directResourceRoleBindings = direct.map(migrateDirectBinding);
+    });
   }
 
   function updateKbBindingRole(id, role) {
+    if (!Object.prototype.hasOwnProperty.call(KB_ASSIGNABLE_ROLES, role)) return;
     const orgBinding = kbOrgRoleBindings.find((item) => item.id === id);
     if (orgBinding) {
+      if (isLockedKbOwner(orgBinding)) return;
       orgBinding.role = role;
       orgBinding.organizationRoleId = `kb-001-${role}`;
       orgBinding.scopes = scopesForKbRole(role);
@@ -2427,7 +2476,7 @@ table.data tr:hover td { background: #fafafa; }
       return;
     }
     const userBinding = kbUserRoleBindings.find((item) => item.id === id);
-    if (!userBinding) return;
+    if (!userBinding || isLockedKbOwner(userBinding)) return;
     userBinding.role = role;
     userBinding.organizationRoleId = `kb-001-${role}`;
     userBinding.scopes = scopesForKbRole(role);
@@ -2444,6 +2493,10 @@ table.data tr:hover td { background: #fafafa; }
   function removeKbBinding(id) {
     const orgBinding = kbOrgRoleBindings.find((item) => item.id === id);
     if (orgBinding) {
+      if (isLockedKbOwner(orgBinding)) {
+        toast("所有者由创建者固定担任，不能移除", "error");
+        return;
+      }
       kbOrgRoleBindings.splice(kbOrgRoleBindings.indexOf(orgBinding), 1);
       renderKbMembers();
       renderKbEffectiveScopes();
@@ -2452,6 +2505,10 @@ table.data tr:hover td { background: #fafafa; }
     }
     const userBinding = kbUserRoleBindings.find((item) => item.id === id);
     if (!userBinding) return;
+    if (isLockedKbOwner(userBinding)) {
+      toast("所有者由创建者固定担任，不能移除", "error");
+      return;
+    }
     kbUserRoleBindings.splice(kbUserRoleBindings.indexOf(userBinding), 1);
     const user = users.find((item) => item.account === userBinding.account);
     if (user) {
@@ -2467,7 +2524,11 @@ table.data tr:hover td { background: #fafafa; }
   function addKbAuthorization() {
     if (!state.kbAuthSubject) { document.getElementById("err-kb-auth").classList.add("show"); return; }
     const role = document.getElementById("kb-auth-role").value;
-    const scopes = role === "admin" ? ["kb:read", "kb:write", "kb:admin"] : role === "editor" ? ["kb:read", "kb:write"] : ["kb:read"];
+    if (!Object.prototype.hasOwnProperty.call(KB_ASSIGNABLE_ROLES, role)) {
+      toast("所有者由创建者固定担任，只能添加编辑者或使用者", "error");
+      return;
+    }
+    const scopes = scopesForKbRole(role);
     const binding = state.kbAuthSubject.type === "organization"
       ? (() => {
         const selectedNode = findNode(state.kbAuthSubject.id);
@@ -2522,8 +2583,9 @@ table.data tr:hover td { background: #fafafa; }
         const saved = JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) || 'null');
         if (saved) {
           users = saved.users;
-          kbOrgRoleBindings.splice(0, kbOrgRoleBindings.length, ...saved.kbOrgRoleBindings);
-          kbUserRoleBindings.splice(0, kbUserRoleBindings.length, ...saved.kbUserRoleBindings);
+          kbOrgRoleBindings.splice(0, kbOrgRoleBindings.length, ...(saved.kbOrgRoleBindings || []));
+          kbUserRoleBindings.splice(0, kbUserRoleBindings.length, ...(saved.kbUserRoleBindings || []));
+          migrateLoadedKbRoles();
           kbVisibility = saved.kbVisibility;
           document.querySelectorAll('input[name="kb-vis"]').forEach(radio => { radio.checked = radio.value === kbVisibility; });
         }
@@ -2536,7 +2598,7 @@ table.data tr:hover td { background: #fafafa; }
     const orgBindings = [];
     for (const org of data.organizations || []) {
       for (const binding of data.permissions?.organizations?.[org.customData?.customerOrgId] || []) {
-        const role = binding.role || "viewer";
+        const role = binding.role === "admin" ? "owner" : (binding.role || "viewer");
         orgBindings.push({ id: `binding-org-${org.customData.customerOrgId}-${role}`, organizationRoleId: binding.organizationRoleId || `kb-001-${role}`, subjectType: "organization", subjectId: org.id, subjectName: org.name, customerOrgId: org.customData.customerOrgId, fullPath: (org.customData.fullPathNames || []).join(" / "), resourceId: binding.resourceId || "kb-001", role, scopes: binding.scopes || [] });
       }
     }
@@ -2550,7 +2612,7 @@ table.data tr:hover td { background: #fafafa; }
       }
       if (local) { local.userCustomData.directResourceRoleBindings = data.permissions?.users?.[logtoUser.customData?.customerEmployeeNo || logtoUser.id] || []; }
       for (const binding of data.permissions?.users?.[logtoUser.customData?.customerEmployeeNo || logtoUser.id] || []) {
-        const role = binding.role || "viewer";
+        const role = binding.role === "admin" ? "owner" : (binding.role || "viewer");
         userBindings.push({ id: `binding-user-${logtoUser.username}-${role}`, organizationRoleId: binding.organizationRoleId || `kb-001-${role}`, subjectType: "user", subjectId: logtoUser.username, subjectName: local?.name || logtoUser.name || logtoUser.username, employeeNo: logtoUser.customData?.customerEmployeeNo, account: logtoUser.username, resourceId: binding.resourceId || "kb-001", role, scopes: binding.scopes || [] });
       }
     }
@@ -2558,6 +2620,7 @@ table.data tr:hover td { background: #fafafa; }
     document.querySelectorAll('input[name="kb-vis"]').forEach(radio => { radio.checked = radio.value === kbVisibility; });
     kbOrgRoleBindings.splice(0, kbOrgRoleBindings.length, ...orgBindings);
     kbUserRoleBindings.splice(0, kbUserRoleBindings.length, ...userBindings);
+    migrateLoadedKbRoles();
   }
 
   // ——— Init ———
