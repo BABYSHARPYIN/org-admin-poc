@@ -532,27 +532,6 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .type-dept .tree-ico { color: #13c2c2; }
 .type-position .tree-ico { color: #fa8c16; }
 
-.filter-hint {
-  padding: 8px 16px;
-  background: #f6ffed;
-  border-bottom: 1px solid #b7eb8f;
-  font-size: 12px;
-  color: #389e0d;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.filter-hint .clear {
-  margin-left: auto;
-  color: var(--primary);
-  cursor: pointer;
-  border: none;
-  background: none;
-  font-size: 12px;
-}
-
 /* —— Table —— */
 .toolbar {
   display: flex;
@@ -1190,8 +1169,6 @@ table.data tr:hover td { background: #fafafa; }
   .results-heading h2 { font-size:17px; margin-top:2px; }
   .result-scope { color:var(--text-secondary); font-size:12px; margin-top:4px; }
   .result-summary { color:var(--primary); font-size:13px; font-weight:600; white-space:nowrap; padding-top:12px; }
-  .filter-hint { padding:9px 18px; }
-  .filter-label { color:var(--text-tertiary); margin-right:7px; }
   .toolbar { padding:10px 18px; }
   .toolbar-note { color:var(--text-secondary); font-size:12px; }
   .toolbar-note strong { color:var(--text); }
@@ -1203,6 +1180,8 @@ table.data tr:hover td { background: #fafafa; }
   .action-col { width:126px; }
   .user-table th { background:#f8fafc; }
   .user-table td { padding:14px 16px; }
+  .user-table .org-cell { line-height:1.5; min-width:200px; word-break:keep-all; overflow-wrap:normal; }
+  .user-table .role-cell { white-space:nowrap; }
   .user-table tr.selected td { background:#fafafa; }
   .user-primary { font-weight:600; color:var(--text); }
   .user-secondary { color:var(--text-tertiary); font-size:12px; margin-top:2px; }
@@ -1229,9 +1208,6 @@ table.data tr:hover td { background: #fafafa; }
   .list-toolbar .btn-primary { min-width:88px; background:#1f1f1f; border-color:#1f1f1f; border-radius:6px; }
   .list-toolbar .btn-primary:hover:not(:disabled) { background:#000; border-color:#000; }
   .toolbar-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
-  .filter-chip { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:-4px 0 10px; color:var(--text-secondary); font-size:12px; }
-  #filter-hint-text { white-space:normal; }
-  .filter-chip button { border:none; background:transparent; color:var(--link); cursor:pointer; }
   #page-org-users .check-col, #page-org-users .selection-bar { display:none; }
   #page-org-users.is-selecting .check-col { display:table-cell; }
   #page-org-users.is-selecting .selection-bar { display:flex; }
@@ -1348,10 +1324,6 @@ table.data tr:hover td { background: #fafafa; }
                   <span class="search-ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
                 </div>
               </div>
-              <div class="filter-chip" id="filter-hint" style="display:none">
-                <span class="filter-label">当前组织</span><span id="filter-hint-text"></span>
-                <button type="button" id="clear-filter">清除选择</button>
-              </div>
               <div class="table-wrap">
                 <table class="data user-table">
                   <thead>
@@ -1360,6 +1332,7 @@ table.data tr:hover td { background: #fafafa; }
                       <th>账号</th>
                       <th>邮箱</th>
                       <th>手机号</th>
+                      <th>组织信息</th>
                       <th>角色</th>
                       <th class="action-col">操作</th>
                     </tr>
@@ -2209,21 +2182,7 @@ table.data tr:hover td { background: #fafafa; }
   }
 
   function renderMainTree() {
-    const container = document.getElementById("org-tree");
-    renderOrgTree(container);
-    const all = document.createElement("div");
-    all.className = "tree-node";
-    const row = document.createElement("div");
-    row.className = "tree-row" + (state.selectedOrgId ? "" : " active");
-    row.innerHTML = `<span class="tree-toggle leaf"></span><span class="tree-label">全部用户</span><span class="tree-badge">${users.length}</span>`;
-    row.addEventListener("click", () => {
-      state.selectedOrgId = null;
-      state.userPage = 1;
-      renderMainTree();
-      renderUsers();
-    });
-    all.appendChild(row);
-    container.insertBefore(all, container.firstChild);
+    renderOrgTree(document.getElementById("org-tree"));
   }
 
   document.getElementById("btn-refresh-org").addEventListener("click", () => {
@@ -2247,13 +2206,6 @@ table.data tr:hover td { background: #fafafa; }
       document.getElementById("btn-expand-all").textContent = "展开";
     }
     renderMainTree();
-  });
-
-  document.getElementById("clear-filter").addEventListener("click", () => {
-    state.selectedOrgId = null;
-    state.userPage = 1;
-    renderMainTree();
-    renderUsers();
   });
 
   // ——— Users table ———
@@ -2282,7 +2234,10 @@ table.data tr:hover td { background: #fafafa; }
     let list = state.selectedOrgId ? usersUnderOrg(state.selectedOrgId) : users.slice();
     const q = state.userSearch.trim().toLowerCase();
     if (q) {
-      list = list.filter((user) => [user.name, user.account, user.email || "", user.phone || "", user.employeeNo || ""].some((value) => value.toLowerCase().includes(q)));
+      list = list.filter((user) => {
+        const fields = [user.name, user.account, user.email || "", user.phone || "", user.employeeNo || "", user.customerInfo || ""];
+        return fields.some((value) => String(value).toLowerCase().includes(q));
+      });
     }
     return list;
   }
@@ -2320,31 +2275,35 @@ table.data tr:hover td { background: #fafafa; }
     pager.appendChild(next);
   }
 
+  function orgInfoLabel(user) {
+    if (!user.orgId) return "";
+    return pathOf(user.orgId).join(" / ");
+  }
+
   function renderUsers() {
     const tbody = document.getElementById("user-tbody");
     const empty = document.getElementById("user-empty");
-    const hint = document.getElementById("filter-hint");
-    const hintText = document.getElementById("filter-hint-text");
     const list = currentUserResults();
     const page = pageSlice(list);
     document.getElementById("user-pagination-label").textContent = `显示 ${page.items.length} 人，共 ${list.length} 人`;
-    if (state.selectedOrgId) {
-      hint.style.display = "flex";
-      hintText.textContent = pathOf(state.selectedOrgId).join(" / ");
-    } else hint.style.display = "none";
 
     const table = tbody.closest("table");
     table.style.display = list.length ? "" : "none";
     empty.style.display = list.length ? "none" : "block";
     tbody.innerHTML = "";
     for (const user of page.items) {
+      const orgInfo = orgInfoLabel(user);
+      const orgHtml = orgInfo
+        ? orgInfo.split(" / ").map((part) => escapeHtml(part)).join("<wbr> / ")
+        : '<span class="muted">--</span>';
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${escapeHtml(user.name)}</td>
         <td>${escapeHtml(user.account)}</td>
         <td>${dash(user.email)}</td>
         <td>${dash(user.phone)}</td>
-        <td>${roleText(user.roleIds)}</td>
+        <td class="org-cell" title="${escapeHtml(orgInfo)}">${orgHtml}</td>
+        <td class="role-cell">${roleText(user.roleIds)}</td>
         <td class="actions-cell action-col"><button class="btn-link" type="button" data-view="${user.id}">查看</button></td>`;
       tbody.appendChild(tr);
     }
