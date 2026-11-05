@@ -2330,7 +2330,7 @@ table.data tr:hover td { background: #fafafa; }
     document.getElementById("user-pagination-label").textContent = `显示 ${page.items.length} 人，共 ${list.length} 人`;
     if (state.selectedOrgId) {
       hint.style.display = "flex";
-      hintText.textContent = pathOf(state.selectedOrgId).join(" - ");
+      hintText.textContent = pathOf(state.selectedOrgId).join(" / ");
     } else hint.style.display = "none";
 
     const table = tbody.closest("table");
