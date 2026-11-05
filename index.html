@@ -1763,18 +1763,6 @@ table.data tr:hover td { background: #fafafa; }
       preset: true,
       perms: ALL_PERMS.filter((k) => NORMAL_USER_PERMS.has(k)),
     },
-    {
-      id: "r-ops",
-      name: "运营专员",
-      desc: "自定义 · 可编辑 Agent/知识库入口；自己创建的资源默认为所有者",
-      preset: false,
-      perms: [
-        "entry.web", "entry.m",
-        "user.profile",
-        "agent.use", "agent.view", "agent.edit_basic", "agent.edit_config",
-        "kb.view", "kb.edit", "kb.files",
-      ],
-    },
   ];
 
   // ——— Seed: sample knowledge base instance ACL ———
@@ -1808,10 +1796,10 @@ table.data tr:hover td { background: #fafafa; }
     { id: "u1", name: "张伟", account: "zhangwei", email: "zhangwei@xinghe.example", phone: "13800001111", roleIds: ["r-admin"], employeeNo: "XH10021" },
     { id: "u2", name: "李娜", account: "lina", email: "lina@xinghe.example", phone: "13800002222", roleIds: ["r-sub"], employeeNo: "XH10022" },
     { id: "u3", name: "王强", account: "wangqiang", email: "", phone: "13800003333", roleIds: ["r-user"], employeeNo: "XH10023" },
-    { id: "u4", name: "赵敏", account: "zhaomin", email: "zhaomin@xinghe.example", phone: "13800004444", roleIds: ["r-ops", "r-user"], employeeNo: "XH10024" },
+    { id: "u4", name: "赵敏", account: "zhaomin", email: "zhaomin@xinghe.example", phone: "13800004444", roleIds: ["r-user"], employeeNo: "XH10024" },
     { id: "u5", name: "陈晨", account: "chenchen", email: "chenchen@xinghe.example", phone: "", roleIds: ["r-user"], employeeNo: "XH10025" },
     { id: "u6", name: "刘洋", account: "liuyang", email: "liuyang@xinghe.example", phone: "13900006666", roleIds: ["r-user"], employeeNo: "XH20001" },
-    { id: "u7", name: "周芳", account: "zhoufang", email: "", phone: "", roleIds: ["r-ops"], employeeNo: "" },
+    { id: "u7", name: "周芳", account: "zhoufang", email: "", phone: "", roleIds: ["r-user"], employeeNo: "" },
     { id: "u8", name: "吴磊", account: "wulei", email: "wulei@xinghe.example", phone: "13700008888", roleIds: ["r-user"], employeeNo: "XH10026" },
     { id: "u9", name: "郑爽", account: "zhengshuang", email: "", phone: "13600009999", roleIds: ["r-sub"], employeeNo: "XH10027" },
     { id: "u10", name: "孙浩", account: "sunhao", email: "sunhao@xinghe.example", phone: "", roleIds: ["r-user"], employeeNo: "" },
