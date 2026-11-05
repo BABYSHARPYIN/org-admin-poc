@@ -1333,7 +1333,7 @@ table.data tr:hover td { background: #fafafa; }
                       <th>邮箱</th>
                       <th>手机号</th>
                       <th>组织信息</th>
-                      <th>角色</th>
+                      <th>账号类型</th>
                       <th class="action-col">操作</th>
                     </tr>
                   </thead>
@@ -1434,17 +1434,17 @@ table.data tr:hover td { background: #fafafa; }
             <div class="field-error" id="err-password">请填写密码（至少 6 位）</div>
           </div>
           <div class="form-row">
-            <label>邮箱</label>
-            <input class="input" id="uf-email" type="email" placeholder="name@example.com" />
+            <label for="uf-email">邮箱</label>
+            <input class="input" id="uf-email" type="email" placeholder="请输入邮箱地址" />
           </div>
           <div class="form-row">
-            <label>手机号</label>
-            <input class="input" id="uf-phone" placeholder="手机号" />
+            <label for="uf-phone">手机号</label>
+            <input class="input" id="uf-phone" placeholder="请输入手机号" />
           </div>
           <div class="form-row">
-            <label>功能角色<span class="req">*</span></label>
-            <div class="checkbox-group" id="uf-roles"></div>
-            <div class="field-error" id="err-roles">请至少选择一个功能角色</div>
+            <label for="uf-account-type">账号类型<span class="req">*</span></label>
+            <select class="input" id="uf-account-type"></select>
+            <div class="field-error" id="err-roles">请选择账号类型</div>
           </div>
           <div class="form-row">
             <label for="uf-employee-no">员工工号</label>
@@ -2317,15 +2317,13 @@ table.data tr:hover td { background: #fafafa; }
     renderUsers();
   });
 
-  function fillRoleCheckboxes(containerId, selected) {
-    const box = document.getElementById(containerId);
-    box.innerHTML = roles
-      .map((role) => `
-      <label class="checkbox">
-        <input type="checkbox" value="${role.id}" ${selected.includes(role.id) ? "checked" : ""} />
-        ${escapeHtml(role.name)}${role.preset ? "（预置）" : ""}
-      </label>`)
+  function fillAccountType(selectedIds) {
+    const select = document.getElementById("uf-account-type");
+    const selected = (selectedIds || []).find((id) => roles.some((role) => role.id === id)) || "r-user";
+    select.innerHTML = roles
+      .map((role) => `<option value="${escapeHtml(role.id)}">${escapeHtml(role.name)}</option>`)
       .join("");
+    if (roles.some((role) => role.id === selected)) select.value = selected;
   }
 
   function deleteUser(user) {
@@ -2369,7 +2367,7 @@ table.data tr:hover td { background: #fafafa; }
     state.editingUserId = userId || null;
     const isEdit = !!userId;
     const user = isEdit ? users.find((item) => item.id === userId) : null;
-    document.getElementById("user-modal-title").textContent = isEdit ? "用户详情" : "新增用户";
+    document.getElementById("user-modal-title").textContent = isEdit ? "用户信息" : "新增用户";
     document.getElementById("uf-password-row").style.display = isEdit ? "none" : "flex";
     document.getElementById("btn-delete-user").hidden = !isEdit;
     ["err-name", "err-account", "err-password", "err-roles"].forEach((id) => document.getElementById(id).classList.remove("show"));
@@ -2383,7 +2381,7 @@ table.data tr:hover td { background: #fafafa; }
       document.getElementById("uf-phone").value = user.phone || "";
       document.getElementById("uf-employee-no").value = user.employeeNo || "";
       document.getElementById("uf-customer-info").value = user.customerInfo || "";
-      fillRoleCheckboxes("uf-roles", user.roleIds);
+      fillAccountType(user.roleIds);
     } else {
       document.getElementById("uf-id").value = "";
       document.getElementById("uf-name").value = "";
@@ -2393,7 +2391,7 @@ table.data tr:hover td { background: #fafafa; }
       document.getElementById("uf-phone").value = "";
       document.getElementById("uf-employee-no").value = "";
       document.getElementById("uf-customer-info").value = "";
-      fillRoleCheckboxes("uf-roles", ["r-user"]);
+      fillAccountType(["r-user"]);
     }
     openModal("modal-user");
   }
@@ -2406,7 +2404,7 @@ table.data tr:hover td { background: #fafafa; }
       email: document.getElementById("uf-email").value.trim(),
       phone: document.getElementById("uf-phone").value.trim(),
       employeeNo: document.getElementById("uf-employee-no").value.trim(),
-      roleIds: Array.from(document.querySelectorAll("#uf-roles input:checked")).map((input) => input.value),
+      roleIds: document.getElementById("uf-account-type").value ? [document.getElementById("uf-account-type").value] : [],
     };
   }
 

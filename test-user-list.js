@@ -19,10 +19,24 @@ if (userTable) {
     "user table should have an 组织信息 column"
   );
   check(
-    /<th>姓名<\/th>[\s\S]*<th>账号<\/th>[\s\S]*<th>邮箱<\/th>[\s\S]*<th>手机号<\/th>[\s\S]*<th>组织信息<\/th>[\s\S]*<th>角色<\/th>[\s\S]*<th class="action-col">操作<\/th>/.test(userTable[0]),
-    "组织信息 should sit with the existing user columns: 姓名 / 账号 / 邮箱 / 手机号 / 组织信息 / 角色 / 操作"
+    /<th>姓名<\/th>[\s\S]*<th>账号<\/th>[\s\S]*<th>邮箱<\/th>[\s\S]*<th>手机号<\/th>[\s\S]*<th>组织信息<\/th>[\s\S]*<th>账号类型<\/th>[\s\S]*<th class="action-col">操作<\/th>/.test(userTable[0]),
+    "组织信息 should sit with the existing user columns: 姓名 / 账号 / 邮箱 / 手机号 / 组织信息 / 账号类型 / 操作"
   );
 }
+
+check(!html.includes("功能角色"), "the POC should not show the invented term 功能角色");
+check(!html.includes("用户详情"), "an existing user drawer should be titled 用户信息, not 用户详情");
+check(html.includes('placeholder="请输入邮箱地址"'), "邮箱 placeholder should match production: 请输入邮箱地址");
+check(html.includes('placeholder="请输入手机号"'), "手机号 placeholder should match production: 请输入手机号");
+check(html.includes(">账号类型<") || html.includes(">账号类型<span"), "user drawer should label the account type 账号类型");
+check(/<select[^>]*id="uf-account-type"/.test(html), "账号类型 should be a single-select control");
+check(
+  /textContent = isEdit \? "用户信息" : "新增用户"/.test(html),
+  "edit drawer title should be 用户信息 and create should stay 新增用户"
+);
+check(!html.includes("（预置）"), "账号类型 options should use the role names without a （预置） suffix");
+const kbTable = html.match(/<table class="data">[\s\S]*?<tbody id="kb-member-tbody">/);
+check(kbTable && kbTable[0].includes("<th>角色</th>"), "knowledge-base auth table should keep the resource column 角色");
 
 check(!html.includes("当前组织"), "user list should not show the 当前组织 breadcrumb");
 check(!html.includes("清除选择"), "user list should not show 清除选择");
@@ -166,8 +180,8 @@ async function main() {
     })()`);
 
     check(
-      snapshot.headers.join(" / ") === "姓名 / 账号 / 邮箱 / 手机号 / 组织信息 / 角色 / 操作",
-      "rendered headers should be 姓名 / 账号 / 邮箱 / 手机号 / 组织信息 / 角色 / 操作, got " + snapshot.headers.join(" / ")
+      snapshot.headers.join(" / ") === "姓名 / 账号 / 邮箱 / 手机号 / 组织信息 / 账号类型 / 操作",
+      "rendered headers should be 姓名 / 账号 / 邮箱 / 手机号 / 组织信息 / 账号类型 / 操作, got " + snapshot.headers.join(" / ")
     );
     check(!snapshot.treeLabels.includes("全部用户"), "rendered org tree should not contain 全部用户, got " + snapshot.treeLabels.join(", "));
     check(snapshot.treeLabels[0] === "星河科技集团", "tree should start at the company root, got " + snapshot.treeLabels[0]);
@@ -271,6 +285,91 @@ async function main() {
       narrowed.join(",") === "yinyue,zhangwei",
       "org filter and customer-info search should combine, got " + JSON.stringify(narrowed)
     );
+
+    const drawer = await evaluate(`(() => {
+      const row = Array.from(document.querySelectorAll("#user-tbody tr")).find((tr) => tr.children[1].textContent.trim() === "yinyue");
+      row.querySelector("[data-view]").click();
+      const form = document.getElementById("user-form");
+      const labels = Array.from(form.querySelectorAll(".form-row"))
+        .filter((row) => row.style.display !== "none")
+        .map((row) => row.querySelector("label").textContent.replace(/\\*/g, "").trim());
+      const select = document.getElementById("uf-account-type");
+      const options = Array.from(select.options).map((option) => option.textContent.trim());
+      return {
+        title: document.getElementById("user-modal-title").textContent.trim(),
+        labels,
+        emailPlaceholder: document.getElementById("uf-email").getAttribute("placeholder"),
+        phonePlaceholder: document.getElementById("uf-phone").getAttribute("placeholder"),
+        options,
+        value: select.selectedOptions[0] ? select.selectedOptions[0].textContent.trim() : "",
+        multiple: !!select.multiple,
+        forbidden: document.documentElement.innerHTML.includes("功能角色"),
+        employeeLabel: document.querySelector('label[for="uf-employee-no"]').textContent.trim(),
+        customerLabel: document.querySelector('label[for="uf-customer-info"]').textContent.trim(),
+      };
+    })()`);
+    check(drawer.title === "用户信息", "opening 尹悦 should title the drawer 用户信息, got " + drawer.title);
+    check(
+      drawer.labels.join(" / ") === "姓名 / 账号 / 邮箱 / 手机号 / 账号类型 / 员工工号 / 用户信息",
+      "edit drawer fields should follow production order plus the POC-only fields, got " + drawer.labels.join(" / ")
+    );
+    check(drawer.emailPlaceholder === "请输入邮箱地址", "邮箱 placeholder should be 请输入邮箱地址, got " + drawer.emailPlaceholder);
+    check(drawer.phonePlaceholder === "请输入手机号", "手机号 placeholder should be 请输入手机号, got " + drawer.phonePlaceholder);
+    check(!drawer.multiple, "账号类型 should be a single-select");
+    check(
+      drawer.options.join(" / ") === "管理员 / 子管理员 / 普通用户",
+      "账号类型 options should be the existing demo roles, got " + drawer.options.join(" / ")
+    );
+    check(drawer.value === "普通用户", "尹悦 should open as 普通用户, got " + drawer.value);
+    check(!drawer.forbidden, "rendered page should not contain 功能角色");
+    check(drawer.employeeLabel === "员工工号", "员工工号 label should stay, got " + drawer.employeeLabel);
+    check(drawer.customerLabel === "用户信息", "readonly customer JSON label should stay 用户信息, got " + drawer.customerLabel);
+
+    const saved = await evaluate(`(() => {
+      const select = document.getElementById("uf-account-type");
+      const admin = Array.from(select.options).find((option) => option.textContent.trim() === "管理员");
+      select.value = admin.value;
+      document.getElementById("btn-save-user").click();
+      const row = Array.from(document.querySelectorAll("#user-tbody tr")).find((tr) => tr.children[1].textContent.trim() === "yinyue");
+      return {
+        accountType: row ? row.children[5].textContent.trim() : "",
+        drawerOpen: document.getElementById("modal-user").classList.contains("show"),
+      };
+    })()`);
+    check(saved.accountType === "管理员", "saving 账号类型 should update the list column, got " + saved.accountType);
+    check(!saved.drawerOpen, "saving should close the user drawer");
+
+    const created = await evaluate(`(() => {
+      document.getElementById("btn-create-user").click();
+      const select = document.getElementById("uf-account-type");
+      return {
+        title: document.getElementById("user-modal-title").textContent.trim(),
+        value: select.selectedOptions[0] ? select.selectedOptions[0].textContent.trim() : "",
+        passwordVisible: document.getElementById("uf-password-row").style.display !== "none",
+      };
+    })()`);
+    check(created.title === "新增用户", "create drawer title should stay 新增用户, got " + created.title);
+    check(created.value === "普通用户", "new users should default to 普通用户, got " + created.value);
+    check(created.passwordVisible, "create flow should still ask for a password");
+
+    const kb = await evaluate(`(() => {
+      document.querySelector('[data-page="kb-perm"]').click();
+      const headers = Array.from(document.querySelectorAll("#page-kb-perm thead th")).map((th) => th.textContent.trim());
+      const text = document.getElementById("page-kb-perm").innerText;
+      return {
+        headers,
+        hasEditor: text.includes("编辑者"),
+        hasViewer: text.includes("使用者"),
+        hasOwner: text.includes("所有者"),
+        forbidden: document.documentElement.innerHTML.includes("功能角色"),
+      };
+    })()`);
+    check(
+      kb.headers.join(" / ") === "成员 / 组织信息 / 角色 / 操作",
+      "knowledge-base columns should stay unchanged, got " + kb.headers.join(" / ")
+    );
+    check(kb.hasEditor && kb.hasViewer && kb.hasOwner, "knowledge-base resource roles should stay 编辑者 / 使用者 / 所有者");
+    check(!kb.forbidden, "knowledge-base page should not introduce 功能角色");
   });
 
   if (failures.length) {
