@@ -1229,7 +1229,8 @@ table.data tr:hover td { background: #fafafa; }
   .list-toolbar .btn-primary { min-width:88px; background:#1f1f1f; border-color:#1f1f1f; border-radius:6px; }
   .list-toolbar .btn-primary:hover:not(:disabled) { background:#000; border-color:#000; }
   .toolbar-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
-  .filter-chip { display:flex; align-items:center; gap:8px; margin:-4px 0 10px; color:var(--text-secondary); font-size:12px; }
+  .filter-chip { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:-4px 0 10px; color:var(--text-secondary); font-size:12px; }
+  #filter-hint-text { white-space:normal; }
   .filter-chip button { border:none; background:transparent; color:var(--link); cursor:pointer; }
   #page-org-users .check-col, #page-org-users .selection-bar { display:none; }
   #page-org-users.is-selecting .check-col { display:table-cell; }
@@ -2325,12 +2326,11 @@ table.data tr:hover td { background: #fafafa; }
     const hint = document.getElementById("filter-hint");
     const hintText = document.getElementById("filter-hint-text");
     const list = currentUserResults();
-    const node = state.selectedOrgId ? findNode(state.selectedOrgId) : null;
     const page = pageSlice(list);
     document.getElementById("user-pagination-label").textContent = `显示 ${page.items.length} 人，共 ${list.length} 人`;
     if (state.selectedOrgId) {
       hint.style.display = "flex";
-      hintText.textContent = node ? node.name : "";
+      hintText.textContent = pathOf(state.selectedOrgId).join(" - ");
     } else hint.style.display = "none";
 
     const table = tbody.closest("table");
