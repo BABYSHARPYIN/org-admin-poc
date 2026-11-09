@@ -41,6 +41,7 @@ check(kbTable && kbTable[0].includes("<th>角色</th>"), "knowledge-base auth ta
 check(!html.includes("当前组织"), "user list should not show the 当前组织 breadcrumb");
 check(!html.includes("清除选择"), "user list should not show 清除选择");
 check(!html.includes("全部用户"), "org tree should not include a synthetic 全部用户 node");
+check(!html.includes("tree-badge"), "org tree should not render member counts");
 check(!html.includes('id="filter-hint"'), "org filter chip markup should be removed");
 check(!html.includes('id="clear-filter"'), "clear-selection control should be removed");
 const searchFn = html.match(/function currentUserResults\(\) \{[\s\S]*?return list;\s*\}/);

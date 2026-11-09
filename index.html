@@ -499,19 +499,6 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   font-size: 13px;
 }
 
-.tree-badge {
-  font-size: 11px;
-  padding: 0 6px;
-  height: 18px;
-  line-height: 18px;
-  border-radius: 9px;
-  background: rgba(0,0,0,0.04);
-  color: var(--text-tertiary);
-  flex-shrink: 0;
-}
-
-.tree-row.active .tree-badge { background: #fff; color: var(--text-secondary); }
-
 .tree-more {
   opacity: 0;
   width: 22px; height: 22px;
@@ -2143,15 +2130,9 @@ table.data tr:hover td { background: #fafafa; }
         label.textContent = n.name;
         label.title = n.name;
 
-        const count = usersUnderOrg(n.id).length;
-        const badge = document.createElement("span");
-        badge.className = "tree-badge";
-        badge.textContent = String(count);
-
         rowEl.appendChild(toggle);
         rowEl.appendChild(ico);
         rowEl.appendChild(label);
-        if (!picker) rowEl.appendChild(badge);
 
         rowEl.addEventListener("click", () => {
           if (picker) {
