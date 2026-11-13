@@ -178,8 +178,10 @@ async function main() {
         total: document.getElementById("user-pagination-label").textContent,
         treeLabels: Array.from(document.querySelectorAll("#org-tree .tree-label")).map((el) => el.textContent.trim()),
         activeRows: document.querySelectorAll("#org-tree .tree-row.active").length,
+        toast: (document.querySelector("#toast-wrap .toast") || {}).textContent || "",
       };
     })()`);
+    check(snapshot.toast !== "工号错误", "load/refresh 查不到 should not toast 工号错误, got " + snapshot.toast);
 
     check(
       snapshot.headers.join(" / ") === "姓名 / 账号 / 邮箱 / 手机号 / 组织信息 / 账号类型 / 操作",
@@ -372,6 +374,662 @@ async function main() {
     );
     check(kb.hasEditor && kb.hasViewer && kb.hasOwner, "knowledge-base resource roles should stay 编辑者 / 使用者 / 所有者");
     check(!kb.forbidden, "knowledge-base page should not introduce 功能角色");
+
+    const resetUsers = `(() => {
+      document.querySelector('[data-page="org-users"]').click();
+      const active = document.querySelector("#org-tree .tree-row.active");
+      if (active) active.click();
+      const input = document.getElementById("user-search");
+      input.value = "";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      return true;
+    })()`;
+    await evaluate(resetUsers);
+
+    function userSnapshot(account) {
+      return `(() => {
+        const input = document.getElementById("user-search");
+        input.value = ${JSON.stringify(account)};
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        const row = document.querySelector("#user-tbody tr");
+        const cells = row ? Array.from(row.children).map((td) => td.textContent.trim()) : [];
+        if (row) row.querySelector("[data-view]").click();
+        return {
+          cells,
+          title: document.getElementById("user-modal-title").textContent.trim(),
+          employeeNo: document.getElementById("uf-employee-no").value,
+          customerInfo: document.getElementById("uf-customer-info").value,
+          accountType: document.getElementById("uf-account-type").selectedOptions[0]
+            ? document.getElementById("uf-account-type").selectedOptions[0].textContent.trim()
+            : "",
+          toast: (document.querySelector("#toast-wrap .toast") || {}).textContent || "",
+        };
+      })()`;
+    }
+
+    const liuLookup = await evaluate(userSnapshot("liuyang"));
+    check(liuLookup.cells[4] === "--", "unknown seeded 工号 should leave 刘洋 with no org, got " + JSON.stringify(liuLookup.cells));
+    check(liuLookup.employeeNo === "", "查不到 on load should clear 刘洋's 工号, got " + liuLookup.employeeNo);
+    check(liuLookup.customerInfo === "", "查不到 on load should clear 刘洋's customer JSON, got " + liuLookup.customerInfo);
+    check(liuLookup.accountType === "普通用户", "查不到 should keep 刘洋's functional role, got " + liuLookup.accountType);
+    await evaluate(`document.querySelector('#modal-user [data-close="modal-user"]').click()`);
+
+    const cancelled = await evaluate(`(() => {
+      const input = document.getElementById("user-search");
+      input.value = "chenchen";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      document.querySelector("#user-tbody [data-view]").click();
+      const field = document.getElementById("uf-employee-no");
+      field.focus();
+      field.value = "NO-SUCH-CANCEL";
+      field.dispatchEvent(new FocusEvent("blur"));
+      const opened = document.getElementById("modal-confirm").classList.contains("show");
+      document.querySelector('#modal-confirm [data-close="modal-confirm"]').click();
+      const afterCancel = {
+        employeeNo: document.getElementById("uf-employee-no").value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+        drawerOpen: document.getElementById("modal-user").classList.contains("show"),
+      };
+      document.querySelector('#modal-user [data-close="modal-user"]').click();
+      input.value = "chenchen";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const row = document.querySelector("#user-tbody tr");
+      return {
+        opened,
+        afterCancel,
+        employeeNo: afterCancel.employeeNo,
+        org: row.children[4].textContent.trim(),
+      };
+    })()`);
+    check(cancelled.opened, "changing 工号 should still ask for confirmation before lookup");
+    check(
+      cancelled.employeeNo === "XH10025" && cancelled.afterCancel.customerInfo.includes("XH10025") && cancelled.org.includes("前端工程师") && cancelled.afterCancel.drawerOpen,
+      "cancelling a 工号 change should keep the previous number, JSON, and org without closing the drawer, got " + JSON.stringify(cancelled)
+    );
+    await evaluate(`document.querySelector('#modal-user [data-close="modal-user"]').click()`);
+
+    const unknownEdit = await evaluate(`(() => {
+      const input = document.getElementById("user-search");
+      input.value = "zhaomin";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      document.querySelector("#user-tbody [data-view]").click();
+      const roleBefore = document.getElementById("uf-account-type").selectedOptions[0].textContent.trim();
+      const field = document.getElementById("uf-employee-no");
+      field.focus();
+      field.value = "NO-SUCH-01";
+      field.dispatchEvent(new FocusEvent("blur"));
+      const confirmTitle = document.getElementById("confirm-title").textContent.trim();
+      const confirmed = document.getElementById("modal-confirm").classList.contains("show");
+      if (confirmed) document.getElementById("btn-confirm-ok").click();
+      const toast = document.querySelector("#toast-wrap .toast");
+      const row = document.querySelector("#user-tbody tr");
+      const cells = Array.from(row.children).map((td) => td.textContent.trim());
+      return {
+        confirmTitle,
+        confirmed,
+        roleBefore,
+        toast: toast ? toast.textContent : "",
+        toastError: toast ? toast.classList.contains("error") : false,
+        cells,
+        employeeNo: document.getElementById("uf-employee-no").value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+        accountType: document.getElementById("uf-account-type").selectedOptions[0].textContent.trim(),
+        drawerOpen: document.getElementById("modal-user").classList.contains("show"),
+        saved: false,
+      };
+    })()`);
+    check(unknownEdit.confirmed && unknownEdit.confirmTitle === "确认变更员工工号", "blurring a changed 工号 should ask for confirmation before lookup, got " + unknownEdit.confirmTitle);
+    check(unknownEdit.toast === "工号错误" && unknownEdit.toastError, "unknown 工号 should report 工号错误 on blur, got " + unknownEdit.toast);
+    check(unknownEdit.drawerOpen, "工号 lookup should apply in the open drawer without waiting for 保存");
+    check(unknownEdit.employeeNo === "", "unknown 工号 should be cleared in the drawer, got " + unknownEdit.employeeNo);
+    check(unknownEdit.customerInfo === "", "unknown 工号 should clear customer JSON, got " + unknownEdit.customerInfo);
+    check(unknownEdit.cells[4] === "--", "unknown 工号 should clear 组织信息 before save, got " + unknownEdit.cells[4]);
+    check(
+      unknownEdit.accountType === "普通用户" && unknownEdit.cells[5] === "普通用户",
+      "unknown 工号 should keep the functional role, got " + unknownEdit.accountType + " / " + unknownEdit.cells[5]
+    );
+    const unknownSaved = await evaluate(`(() => {
+      document.getElementById("btn-save-user").click();
+      const toast = document.querySelector("#toast-wrap .toast");
+      const input = document.getElementById("user-search");
+      input.value = "zhaomin";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const row = document.querySelector("#user-tbody tr");
+      row.querySelector("[data-view]").click();
+      return {
+        toast: toast ? toast.textContent : "",
+        confirmed: document.getElementById("modal-confirm").classList.contains("show"),
+        employeeNo: document.getElementById("uf-employee-no").value,
+        org: row.children[4].textContent.trim(),
+      };
+    })()`);
+    check(unknownSaved.toast === "已保存" && !unknownSaved.confirmed, "saving after a blur lookup should not look the 工号 up again, got " + JSON.stringify(unknownSaved));
+    check(unknownSaved.employeeNo === "" && unknownSaved.org === "--", "save should keep the cleared 工号 and org, got " + JSON.stringify(unknownSaved));
+    await evaluate(`document.querySelector('#modal-user [data-close="modal-user"]').click()`);
+
+    const zhaoGrant = await evaluate(`(() => {
+      document.querySelector('[data-page="kb-perm"]').click();
+      const direct = document.querySelector('#kb-member-tbody select[data-kind="user"][data-id="zhaomin"]');
+      const orgGrant = document.querySelector('#kb-member-tbody select[data-kind="org"][data-id="d2"]');
+      return {
+        direct: direct ? direct.value : "",
+        orgGrant: orgGrant ? orgGrant.value : "",
+      };
+    })()`);
+    check(zhaoGrant.direct === "editor", "unknown 工号 should keep 赵敏's direct resource grant, got " + zhaoGrant.direct);
+    check(zhaoGrant.orgGrant === "viewer", "clearing one user's org should keep the department grant, got " + zhaoGrant.orgGrant);
+    await evaluate(`document.querySelector('[data-page="org-users"]').click()`);
+
+    const createdBlur = await evaluate(`(() => {
+      document.getElementById("btn-create-user").click();
+      document.getElementById("uf-name").value = "未建档";
+      document.getElementById("uf-account").value = "no-such-user";
+      document.getElementById("uf-password").value = "secret1";
+      const field = document.getElementById("uf-employee-no");
+      field.focus();
+      field.value = "NO-SUCH-02";
+      field.dispatchEvent(new FocusEvent("blur"));
+      const toast = document.querySelector("#toast-wrap .toast");
+      return {
+        confirmed: document.getElementById("modal-confirm").classList.contains("show"),
+        drawerOpen: document.getElementById("modal-user").classList.contains("show"),
+        toast: toast ? toast.textContent : "",
+        employeeNo: field.value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+      };
+    })()`);
+    check(!createdBlur.confirmed, "creating a user should not ask to confirm a new 工号");
+    check(createdBlur.drawerOpen, "create lookup should stay in the new-user drawer");
+    check(createdBlur.toast === "工号错误", "creating an unknown 工号 should report 工号错误 on blur, got " + createdBlur.toast);
+    check(createdBlur.employeeNo === "" && createdBlur.customerInfo === "", "creating an unknown 工号 should clear the field and JSON before save, got " + JSON.stringify(createdBlur));
+    const createdUnknown = await evaluate(`(() => {
+      document.getElementById("btn-save-user").click();
+      const toast = document.querySelector("#toast-wrap .toast");
+      const input = document.getElementById("user-search");
+      input.value = "no-such-user";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const row = document.querySelector("#user-tbody tr");
+      const cells = row ? Array.from(row.children).map((td) => td.textContent.trim()) : [];
+      if (row) row.querySelector("[data-view]").click();
+      return {
+        toast: toast ? toast.textContent : "",
+        cells,
+        employeeNo: document.getElementById("uf-employee-no").value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+        accountType: document.getElementById("uf-account-type").selectedOptions[0]
+          ? document.getElementById("uf-account-type").selectedOptions[0].textContent.trim()
+          : "",
+      };
+    })()`);
+    check(createdUnknown.toast === "已创建用户 未建档", "saving after the blur lookup should not report 工号错误 again, got " + createdUnknown.toast);
+    check(createdUnknown.cells[0] === "未建档" && createdUnknown.cells[4] === "--", "created unknown 工号 should be saved with no org, got " + JSON.stringify(createdUnknown.cells));
+    check(createdUnknown.employeeNo === "" && createdUnknown.customerInfo === "", "created unknown 工号 should be stored as no employee number, got " + createdUnknown.employeeNo);
+    check(createdUnknown.accountType === "普通用户", "created unknown 工号 should keep the selected functional role, got " + createdUnknown.accountType);
+    await evaluate(`document.querySelector('#modal-user [data-close="modal-user"]').click()`);
+
+    const blankCreate = await evaluate(`(() => {
+      document.getElementById("btn-create-user").click();
+      document.getElementById("uf-name").value = "无工号";
+      document.getElementById("uf-account").value = "no-number-user";
+      document.getElementById("uf-password").value = "secret1";
+      document.getElementById("uf-employee-no").value = "";
+      document.getElementById("btn-save-user").click();
+      const toast = document.querySelector("#toast-wrap .toast");
+      const input = document.getElementById("user-search");
+      input.value = "no-number-user";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const row = document.querySelector("#user-tbody tr");
+      const cells = row ? Array.from(row.children).map((td) => td.textContent.trim()) : [];
+      if (row) row.querySelector("[data-view]").click();
+      return {
+        toast: toast ? toast.textContent : "",
+        cells,
+        employeeNo: document.getElementById("uf-employee-no").value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+      };
+    })()`);
+    check(blankCreate.toast === "已创建用户 无工号", "blank 工号 on create should not sync or report 工号错误, got " + blankCreate.toast);
+    check(
+      blankCreate.cells[4] === "--" && blankCreate.employeeNo === "" && blankCreate.customerInfo === "",
+      "blank 工号 on create should have no org affiliation, got " + JSON.stringify(blankCreate)
+    );
+    await evaluate(`document.querySelector('#modal-user [data-close="modal-user"]').click()`);
+
+    const matched = await evaluate(`(() => {
+      const input = document.getElementById("user-search");
+      input.value = "sunhao";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      document.querySelector("#user-tbody [data-view]").click();
+      document.getElementById("toast-wrap").replaceChildren();
+      const field = document.getElementById("uf-employee-no");
+      field.focus();
+      field.value = "XH10029";
+      field.dispatchEvent(new FocusEvent("blur"));
+      if (document.getElementById("modal-confirm").classList.contains("show")) {
+        document.getElementById("btn-confirm-ok").click();
+      }
+      const toast = document.querySelector("#toast-wrap .toast");
+      const row = document.querySelector("#user-tbody tr");
+      const cells = Array.from(row.children).map((td) => td.textContent.trim());
+      return {
+        toast: toast ? toast.textContent : "",
+        drawerOpen: document.getElementById("modal-user").classList.contains("show"),
+        cells,
+        employeeNo: field.value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+        accountType: document.getElementById("uf-account-type").selectedOptions[0].textContent.trim(),
+      };
+    })()`);
+    check(matched.toast !== "工号错误", "a directory hit should not report 工号错误, got " + matched.toast);
+    check(matched.drawerOpen, "a directory hit should write the drawer before 保存");
+    check(matched.employeeNo === "XH10029", "a directory hit should keep the 工号, got " + matched.employeeNo);
+    check(
+      matched.customerInfo.includes("XH10029") && matched.customerInfo.includes("销售支持"),
+      "a directory hit should write the customer user JSON on blur, got " + matched.customerInfo
+    );
+    check(
+      matched.cells[4] === "星河科技集团 / 星河数据子公司 / 销售部" && matched.accountType === "普通用户",
+      "a directory hit with a department should update membership and keep the functional role, got " + JSON.stringify(matched.cells)
+    );
+    const matchedSave = await evaluate(`(() => {
+      const removed = window.__customerDirectory ? window.__customerDirectory.XH10029 : null;
+      if (window.__customerDirectory) delete window.__customerDirectory.XH10029;
+      document.getElementById("btn-save-user").click();
+      const toast = document.querySelector("#toast-wrap .toast");
+      const input = document.getElementById("user-search");
+      input.value = "sunhao";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const row = document.querySelector("#user-tbody tr");
+      row.querySelector("[data-view]").click();
+      const result = {
+        toast: toast ? toast.textContent : "",
+        confirmed: document.getElementById("modal-confirm").classList.contains("show"),
+        org: row.children[4].textContent.trim(),
+        employeeNo: document.getElementById("uf-employee-no").value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+      };
+      if (window.__customerDirectory && removed) window.__customerDirectory.XH10029 = removed;
+      return result;
+    })()`);
+    check(
+      matchedSave.toast === "已保存" && !matchedSave.confirmed && matchedSave.employeeNo === "XH10029" && matchedSave.customerInfo.includes("销售支持") && matchedSave.org.includes("销售部"),
+      "save should not look the 工号 up again after blur, got " + JSON.stringify(matchedSave)
+    );
+    await evaluate(`document.querySelector('#modal-user [data-close="modal-user"]').click()`);
+
+    const noDept = await evaluate(`(() => {
+      const input = document.getElementById("user-search");
+      input.value = "dinglan";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      document.querySelector("#user-tbody [data-view]").click();
+      document.getElementById("toast-wrap").replaceChildren();
+      const field = document.getElementById("uf-employee-no");
+      field.focus();
+      field.value = "XH10030";
+      field.dispatchEvent(new FocusEvent("blur"));
+      if (document.getElementById("modal-confirm").classList.contains("show")) {
+        document.getElementById("btn-confirm-ok").click();
+      }
+      const toast = document.querySelector("#toast-wrap .toast");
+      const row = document.querySelector("#user-tbody tr");
+      const cells = Array.from(row.children).map((td) => td.textContent.trim());
+      return {
+        toast: toast ? toast.textContent : "",
+        drawerOpen: document.getElementById("modal-user").classList.contains("show"),
+        cells,
+        employeeNo: field.value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+        accountType: document.getElementById("uf-account-type").selectedOptions[0].textContent.trim(),
+      };
+    })()`);
+    check(noDept.drawerOpen, "a hit without a department should update the open drawer");
+    check(noDept.toast !== "工号错误", "a hit without a department should not report 工号错误, got " + noDept.toast);
+    check(noDept.employeeNo === "XH10030", "a hit without a department should keep the 工号, got " + noDept.employeeNo);
+    check(
+      noDept.customerInfo.includes("XH10030") && noDept.customerInfo.includes("顾问"),
+      "a hit without a department should still write the customer JSON, got " + noDept.customerInfo
+    );
+    check(noDept.cells[4] === "--", "a hit without a department should clear org affiliation, got " + noDept.cells[4]);
+    check(noDept.accountType === "子管理员" && noDept.cells[5] === "子管理员", "a hit without a department should keep the functional role, got " + noDept.accountType);
+    await evaluate(`document.querySelector('#modal-user [data-close="modal-user"]').click()`);
+
+    const unchangedView = await evaluate(`(() => {
+      const input = document.getElementById("user-search");
+      input.value = "zhangwei";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const before = document.querySelector("#user-tbody tr").children[4].textContent.trim();
+      document.querySelector("#user-tbody [data-view]").click();
+      const field = document.getElementById("uf-employee-no");
+      field.focus();
+      field.dispatchEvent(new FocusEvent("blur"));
+      const blurredConfirm = document.getElementById("modal-confirm").classList.contains("show");
+      document.getElementById("btn-save-user").click();
+      const toast = document.querySelector("#toast-wrap .toast");
+      const confirmed = document.getElementById("modal-confirm").classList.contains("show");
+      input.value = "zhangwei";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const row = document.querySelector("#user-tbody tr");
+      row.querySelector("[data-view]").click();
+      return {
+        before,
+        confirmed: confirmed || blurredConfirm,
+        toast: toast ? toast.textContent : "",
+        org: row.children[4].textContent.trim(),
+        employeeNo: document.getElementById("uf-employee-no").value,
+      };
+    })()`);
+    check(!unchangedView.confirmed, "saving without a 工号 change should not ask to sync");
+    check(
+      unchangedView.toast === "已保存" && unchangedView.employeeNo === "XH10021" && unchangedView.org === unchangedView.before && unchangedView.org.includes("研发部"),
+      "opening and saving a linked user should keep 工号 and org, got " + JSON.stringify(unchangedView)
+    );
+    await evaluate(`document.querySelector('#modal-user [data-close="modal-user"]').click()`);
+
+    const clearedNo = await evaluate(`(() => {
+      const input = document.getElementById("user-search");
+      input.value = "wulei";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      document.querySelector("#user-tbody [data-view]").click();
+      document.getElementById("toast-wrap").replaceChildren();
+      const field = document.getElementById("uf-employee-no");
+      field.focus();
+      field.value = "";
+      field.dispatchEvent(new FocusEvent("blur"));
+      const confirmed = document.getElementById("modal-confirm").classList.contains("show");
+      if (confirmed) document.getElementById("btn-confirm-ok").click();
+      const toast = document.querySelector("#toast-wrap .toast");
+      const row = document.querySelector("#user-tbody tr");
+      return {
+        confirmed,
+        toast: toast ? toast.textContent : "",
+        drawerOpen: document.getElementById("modal-user").classList.contains("show"),
+        org: row.children[4].textContent.trim(),
+        employeeNo: field.value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+        accountType: document.getElementById("uf-account-type").selectedOptions[0].textContent.trim(),
+      };
+    })()`);
+    check(clearedNo.confirmed, "clearing an existing 工号 should still ask for confirmation");
+    check(clearedNo.drawerOpen, "clearing a 工号 should apply in the open drawer");
+    check(clearedNo.toast === "", "clearing a 工号 on purpose should not report 工号错误, got " + clearedNo.toast);
+    check(
+      clearedNo.employeeNo === "" && clearedNo.customerInfo === "" && clearedNo.org === "--" && clearedNo.accountType === "普通用户",
+      "an explicit empty 工号 should drop org affiliation and keep the functional role, got " + JSON.stringify(clearedNo)
+    );
+    await evaluate(`document.querySelector('#modal-user [data-close="modal-user"]').click()`);
+
+    const lookupDown = await evaluate(`(() => {
+      if (!("__customerLookupDown" in window) || !window.__customerDirectory) {
+        return { error: "missing-directory-controls" };
+      }
+      window.__customerLookupDown = true;
+      document.getElementById("btn-refresh-org").click();
+      const toast = document.querySelector("#toast-wrap .toast");
+      const input = document.getElementById("user-search");
+      input.value = "zhangwei";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const row = document.querySelector("#user-tbody tr");
+      row.querySelector("[data-view]").click();
+      const result = {
+        toast: toast ? toast.textContent : "",
+        org: row.children[4].textContent.trim(),
+        employeeNo: document.getElementById("uf-employee-no").value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+      };
+      window.__customerLookupDown = false;
+      document.querySelector('#modal-user [data-close="modal-user"]').click();
+      return result;
+    })()`);
+    check(!lookupDown.error, "mock directory failure should be distinguishable from 查不到, got " + JSON.stringify(lookupDown));
+    check(
+      lookupDown.toast === "工号查询失败，未更新员工工号",
+      "lookup failure should not be reported as 工号错误, got " + lookupDown.toast
+    );
+    check(
+      lookupDown.employeeNo === "XH10021" && (lookupDown.org || "").includes("研发部") && (lookupDown.customerInfo || "").includes("XH10021"),
+      "lookup failure should not clear 工号 or org, got " + JSON.stringify(lookupDown)
+    );
+
+    const refreshMiss = await evaluate(`(() => {
+      if (!window.__customerDirectory) return { error: "missing-directory-controls" };
+      const removed = window.__customerDirectory.XH10022;
+      delete window.__customerDirectory.XH10022;
+      document.getElementById("btn-refresh-org").click();
+      const toast = document.querySelector("#toast-wrap .toast");
+      const input = document.getElementById("user-search");
+      input.value = "lina";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const row = document.querySelector("#user-tbody tr");
+      const cells = Array.from(row.children).map((td) => td.textContent.trim());
+      row.querySelector("[data-view]").click();
+      const lina = {
+        cells,
+        employeeNo: document.getElementById("uf-employee-no").value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+        accountType: document.getElementById("uf-account-type").selectedOptions[0].textContent.trim(),
+      };
+      document.querySelector('#modal-user [data-close="modal-user"]').click();
+      input.value = "zhangwei";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const zhang = document.querySelector("#user-tbody tr");
+      zhang.querySelector("[data-view]").click();
+      const kept = {
+        org: zhang.children[4].textContent.trim(),
+        employeeNo: document.getElementById("uf-employee-no").value,
+      };
+      document.querySelector('#modal-user [data-close="modal-user"]').click();
+      input.value = "zhoufang";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      const zhouRow = document.querySelector("#user-tbody tr");
+      zhouRow.querySelector("[data-view]").click();
+      const zhou = {
+        org: zhouRow.children[4].textContent.trim(),
+        employeeNo: document.getElementById("uf-employee-no").value,
+      };
+      window.__customerDirectory.XH10022 = removed;
+      return {
+        toast: toast ? toast.textContent : "",
+        lina,
+        kept,
+        zhou,
+      };
+    })()`);
+    check(!refreshMiss.error, "refresh should look up linked users in the mock directory, got " + JSON.stringify(refreshMiss));
+    check(refreshMiss.toast !== "工号错误", "refresh 查不到 should clear without the admin 工号错误 toast, got " + refreshMiss.toast);
+    check(refreshMiss.toast === "已从客户系统刷新组织", "refresh should still confirm the org publish, got " + refreshMiss.toast);
+    check(
+      !!refreshMiss.lina && refreshMiss.lina.employeeNo === "" && refreshMiss.lina.customerInfo === "" && refreshMiss.lina.cells[4] === "--",
+      "refresh 查不到 should clear 工号 and org, got " + JSON.stringify(refreshMiss.lina)
+    );
+    check(
+      !!refreshMiss.lina && refreshMiss.lina.accountType === "子管理员" && refreshMiss.lina.cells[5] === "子管理员",
+      "refresh 查不到 should keep the functional role, got " + JSON.stringify(refreshMiss.lina)
+    );
+    check(
+      !!refreshMiss.kept && refreshMiss.kept.employeeNo === "XH10021" && refreshMiss.kept.org.includes("研发部"),
+      "refresh should keep users whose 工号 still hits, got " + JSON.stringify(refreshMiss.kept)
+    );
+    check(
+      !!refreshMiss.zhou && refreshMiss.zhou.employeeNo === "" && refreshMiss.zhou.org === "--",
+      "refresh should not invent org info for a user with no 工号, got " + JSON.stringify(refreshMiss.zhou)
+    );
+
+    const noEmployeeRefresh = await evaluate(`(() => {
+      document.querySelector('[data-page="org-users"]').click();
+      const input = document.getElementById("user-search");
+      input.value = "zhoufang";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      document.querySelector("#user-tbody [data-view]").click();
+      const sso = document.getElementById("btn-sso-login");
+      if (!sso || sso.hidden) return { error: "missing-sso" };
+      document.getElementById("toast-wrap").replaceChildren();
+      const field = document.getElementById("uf-employee-no");
+      field.focus();
+      field.value = "XH10032";
+      field.dispatchEvent(new FocusEvent("blur"));
+      if (document.getElementById("modal-confirm").classList.contains("show")) {
+        document.getElementById("btn-confirm-ok").click();
+      }
+      const linked = {
+        employeeNo: field.value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+        org: document.querySelector("#user-tbody tr").children[4].textContent.trim(),
+        accountType: document.getElementById("uf-account-type").selectedOptions[0].textContent.trim(),
+        toast: (document.querySelector("#toast-wrap .toast") || {}).textContent || "",
+      };
+      document.getElementById("toast-wrap").replaceChildren();
+      sso.click();
+      const afterLogin = {
+        employeeNo: document.getElementById("uf-employee-no").value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+        org: document.querySelector("#user-tbody tr").children[4].textContent.trim(),
+        accountType: document.getElementById("uf-account-type").selectedOptions[0].textContent.trim(),
+        toast: (document.querySelector("#toast-wrap .toast") || {}).textContent || "",
+        drawerOpen: document.getElementById("modal-user").classList.contains("show"),
+      };
+      return { linked, afterLogin };
+    })()`);
+    check(!noEmployeeRefresh.error, "SSO login should be available for a bound user, got " + JSON.stringify(noEmployeeRefresh));
+    check(
+      noEmployeeRefresh.linked && noEmployeeRefresh.linked.employeeNo === "XH10032" && noEmployeeRefresh.linked.org.includes("研发部") && noEmployeeRefresh.linked.toast !== "工号错误",
+      "admin entry of a real 工号 should write membership before SSO, got " + JSON.stringify(noEmployeeRefresh.linked)
+    );
+    check(
+      noEmployeeRefresh.afterLogin && noEmployeeRefresh.afterLogin.drawerOpen && noEmployeeRefresh.afterLogin.employeeNo === "" && noEmployeeRefresh.afterLogin.customerInfo === "" && noEmployeeRefresh.afterLogin.org === "--",
+      "SSO 无工号 should clear org and customer JSON without blocking login, got " + JSON.stringify(noEmployeeRefresh.afterLogin)
+    );
+    check(
+      noEmployeeRefresh.afterLogin && noEmployeeRefresh.afterLogin.accountType === "普通用户" && noEmployeeRefresh.afterLogin.toast !== "工号错误",
+      "SSO 无工号 should keep the function role and not toast 工号错误, got " + JSON.stringify(noEmployeeRefresh.afterLogin)
+    );
+    let refreshClearsManual = { error: "skipped" };
+    if (!noEmployeeRefresh.error) {
+      refreshClearsManual = await evaluate(`(() => {
+        const field = document.getElementById("uf-employee-no");
+        field.focus();
+        field.value = "XH10032";
+        field.dispatchEvent(new FocusEvent("blur"));
+        if (document.getElementById("modal-confirm").classList.contains("show")) {
+          document.getElementById("btn-confirm-ok").click();
+        }
+        const linkedOrg = document.querySelector("#user-tbody tr").children[4].textContent.trim();
+        document.getElementById("toast-wrap").replaceChildren();
+        document.getElementById("btn-refresh-org").click();
+        const row = document.querySelector("#user-tbody tr");
+        return {
+          linkedOrg,
+          employeeNo: document.getElementById("uf-employee-no").value,
+          customerInfo: document.getElementById("uf-customer-info").value,
+          org: row.children[4].textContent.trim(),
+          accountType: document.getElementById("uf-account-type").selectedOptions[0].textContent.trim(),
+          toast: (document.querySelector("#toast-wrap .toast") || {}).textContent || "",
+        };
+      })()`);
+    }
+    check(
+      refreshClearsManual.linkedOrg && refreshClearsManual.linkedOrg.includes("研发部"),
+      "a manual 工号 with a department should update membership, got " + JSON.stringify(refreshClearsManual)
+    );
+    check(
+      refreshClearsManual.org === "--" && refreshClearsManual.employeeNo === "" && refreshClearsManual.customerInfo === "" && refreshClearsManual.accountType === "普通用户" && refreshClearsManual.toast === "已从客户系统刷新组织",
+      "refresh should apply 无工号 from the latest identity and clear the manual org, got " + JSON.stringify(refreshClearsManual)
+    );
+    const zhouGrant = await evaluate(`(() => {
+      document.querySelector('[data-page="kb-perm"]').click();
+      const direct = document.querySelector('#kb-member-tbody select[data-kind="user"][data-id="zhoufang"]');
+      return { direct: direct ? direct.value : "" };
+    })()`);
+    check(zhouGrant.direct === "viewer", "SSO sync should keep 周芳's direct resource grant, got " + zhouGrant.direct);
+
+    const pendingOrg = await evaluate(`(() => {
+      document.querySelector('[data-page="org-users"]').click();
+      const input = document.getElementById("user-search");
+      input.value = "sunhao";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      document.querySelector("#user-tbody [data-view]").click();
+      document.getElementById("toast-wrap").replaceChildren();
+      const before = (window.__orgAnomalies || []).length;
+      const field = document.getElementById("uf-employee-no");
+      field.focus();
+      field.value = "XH10031";
+      field.dispatchEvent(new FocusEvent("blur"));
+      if (document.getElementById("modal-confirm").classList.contains("show")) {
+        document.getElementById("btn-confirm-ok").click();
+      }
+      const row = document.querySelector("#user-tbody tr");
+      const missing = {
+        employeeNo: field.value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+        org: row.children[4].textContent.trim(),
+        accountType: document.getElementById("uf-account-type").selectedOptions[0].textContent.trim(),
+        toast: (document.querySelector("#toast-wrap .toast") || {}).textContent || "",
+        anomaly: (window.__orgAnomalies || []).slice(before),
+      };
+      document.getElementById("toast-wrap").replaceChildren();
+      document.getElementById("btn-refresh-org").click();
+      const stillMissing = {
+        org: document.querySelector("#user-tbody tr").children[4].textContent.trim(),
+        employeeNo: document.getElementById("uf-employee-no").value,
+        toast: (document.querySelector("#toast-wrap .toast") || {}).textContent || "",
+      };
+      window.__includePendingOrg = true;
+      document.getElementById("toast-wrap").replaceChildren();
+      document.getElementById("btn-refresh-org").click();
+      const rebuilt = {
+        org: document.querySelector("#user-tbody tr").children[4].textContent.trim(),
+        employeeNo: document.getElementById("uf-employee-no").value,
+        accountType: document.getElementById("uf-account-type").selectedOptions[0].textContent.trim(),
+        toast: (document.querySelector("#toast-wrap .toast") || {}).textContent || "",
+      };
+      window.__includePendingOrg = false;
+      return { missing, stillMissing, rebuilt };
+    })()`);
+    check(
+      pendingOrg.missing && pendingOrg.missing.employeeNo === "XH10031" && pendingOrg.missing.customerInfo.includes("新业务") && pendingOrg.missing.org === "--",
+      "an org missing from the snapshot should keep JSON and clear current membership, got " + JSON.stringify(pendingOrg.missing)
+    );
+    check(
+      pendingOrg.missing && pendingOrg.missing.accountType === "普通用户" && pendingOrg.missing.toast !== "工号错误" && pendingOrg.missing.anomaly.some((item) => item.orgId === "d-new"),
+      "a missing org should log an anomaly and keep the function role, got " + JSON.stringify(pendingOrg.missing)
+    );
+    check(
+      pendingOrg.stillMissing && pendingOrg.stillMissing.org === "--" && pendingOrg.stillMissing.employeeNo === "XH10031" && pendingOrg.stillMissing.toast !== "工号错误",
+      "refresh should not invent membership before the org is published, got " + JSON.stringify(pendingOrg.stillMissing)
+    );
+    check(
+      pendingOrg.rebuilt && pendingOrg.rebuilt.org.includes("新业务部") && pendingOrg.rebuilt.employeeNo === "XH10031" && pendingOrg.rebuilt.accountType === "普通用户" && pendingOrg.rebuilt.toast !== "工号错误",
+      "the next org publish should rebuild membership, got " + JSON.stringify(pendingOrg.rebuilt)
+    );
+
+    const ssoFailure = await evaluate(`(() => {
+      if (!("__customerLookupDown" in window)) return { error: "missing-directory-controls" };
+      const input = document.getElementById("user-search");
+      input.value = "zhangwei";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      document.querySelector("#user-tbody [data-view]").click();
+      const sso = document.getElementById("btn-sso-login");
+      if (!sso || sso.hidden) return { error: "missing-sso" };
+      window.__customerLookupDown = true;
+      document.getElementById("toast-wrap").replaceChildren();
+      sso.click();
+      const row = document.querySelector("#user-tbody tr");
+      const result = {
+        employeeNo: document.getElementById("uf-employee-no").value,
+        customerInfo: document.getElementById("uf-customer-info").value,
+        org: row.children[4].textContent.trim(),
+        accountType: document.getElementById("uf-account-type").selectedOptions[0].textContent.trim(),
+        toast: (document.querySelector("#toast-wrap .toast") || {}).textContent || "",
+        drawerOpen: document.getElementById("modal-user").classList.contains("show"),
+      };
+      window.__customerLookupDown = false;
+      return result;
+    })()`);
+    check(!ssoFailure.error, "SSO login should call the shared lookup, got " + JSON.stringify(ssoFailure));
+    check(ssoFailure.toast !== "工号错误", "SSO lookup failure should not toast 工号错误, got " + ssoFailure.toast);
+    check(
+      ssoFailure.drawerOpen && ssoFailure.employeeNo === "XH10021" && (ssoFailure.org || "").includes("研发部") && (ssoFailure.customerInfo || "").includes("XH10021") && ssoFailure.accountType === "管理员",
+      "SSO lookup failure should keep the last projection and function role, got " + JSON.stringify(ssoFailure)
+    );
   });
 
   if (failures.length) {

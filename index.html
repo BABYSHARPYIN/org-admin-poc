@@ -1445,6 +1445,7 @@ table.data tr:hover td { background: #fafafa; }
       </div>
       <div class="modal-footer">
         <button class="btn btn-danger" type="button" id="btn-delete-user" hidden>删除用户</button>
+        <button class="btn" type="button" id="btn-sso-login" hidden>SSO 登录</button>
         <span style="flex:1"></span>
         <button class="btn" type="button" data-close="modal-user">取消</button>
         <button class="btn btn-primary" type="button" id="btn-save-user">保存</button>
@@ -1751,16 +1752,29 @@ table.data tr:hover td { background: #fafafa; }
     XH10027: { orgId: "p11", info: buildCustomerInfo({ employeeNo: "XH10027", name: "郑爽", org: "星河科技集团/星河数据子公司/人力资源部/HRBP", job: "HRBP", staffStatus: "在职" }) },
     XH10028: { orgId: "p8", info: buildCustomerInfo({ employeeNo: "XH10028", name: "尹悦", org: "星河科技集团/星河智造子公司/研发部/产品经理", job: "产品经理", staffStatus: "在职" }) },
     XH10029: { orgId: "d3", info: buildCustomerInfo({ employeeNo: "XH10029", name: "备用档案", org: "星河科技集团/星河数据子公司/销售部", job: "销售支持", staffStatus: "在职" }) },
+    XH10030: { orgId: null, info: buildCustomerInfo({ employeeNo: "XH10030", name: "无部门", org: "", job: "顾问", staffStatus: "在职" }) },
+    XH10031: { orgId: "d-new", info: buildCustomerInfo({ employeeNo: "XH10031", name: "新业务", org: "星河科技集团/新业务部", job: "顾问", staffStatus: "在职" }) },
+    XH10032: { orgId: "d2", info: buildCustomerInfo({ employeeNo: "XH10032", name: "周芳", org: "星河科技集团/星河智造子公司/研发部", job: "运营", staffStatus: "在职" }) },
   };
+  window.__customerDirectory = CUSTOMER_DIRECTORY;
+  window.__customerLookupDown = false;
+  window.__includePendingOrg = false;
+  window.__orgAnomalies = [];
+  const SSO_ASSERTIONS = {
+    "xinghe-sso|idp-zhangwei": { employeeNo: "XH10021" },
+    "xinghe-sso|idp-liuyang": { employeeNo: "XH20001" },
+    "xinghe-sso|idp-zhoufang": { employeeNo: "" },
+  };
+  window.__ssoAssertions = SSO_ASSERTIONS;
 
   let users = [
-    { id: "u1", name: "张伟", account: "zhangwei", email: "zhangwei@xinghe.example", phone: "13800001111", roleIds: ["r-admin"], employeeNo: "XH10021" },
+    { id: "u1", name: "张伟", account: "zhangwei", email: "zhangwei@xinghe.example", phone: "13800001111", roleIds: ["r-admin"], employeeNo: "XH10021", provider: "xinghe-sso", providerUserId: "idp-zhangwei" },
     { id: "u2", name: "李娜", account: "lina", email: "lina@xinghe.example", phone: "13800002222", roleIds: ["r-sub"], employeeNo: "XH10022" },
     { id: "u3", name: "王强", account: "wangqiang", email: "", phone: "13800003333", roleIds: ["r-user"], employeeNo: "XH10023" },
     { id: "u4", name: "赵敏", account: "zhaomin", email: "zhaomin@xinghe.example", phone: "13800004444", roleIds: ["r-user"], employeeNo: "XH10024" },
     { id: "u5", name: "陈晨", account: "chenchen", email: "chenchen@xinghe.example", phone: "", roleIds: ["r-user"], employeeNo: "XH10025" },
-    { id: "u6", name: "刘洋", account: "liuyang", email: "liuyang@xinghe.example", phone: "13900006666", roleIds: ["r-user"], employeeNo: "XH20001" },
-    { id: "u7", name: "周芳", account: "zhoufang", email: "", phone: "", roleIds: ["r-user"], employeeNo: "" },
+    { id: "u6", name: "刘洋", account: "liuyang", email: "liuyang@xinghe.example", phone: "13900006666", roleIds: ["r-user"], employeeNo: "XH20001", provider: "xinghe-sso", providerUserId: "idp-liuyang" },
+    { id: "u7", name: "周芳", account: "zhoufang", email: "", phone: "", roleIds: ["r-user"], employeeNo: "", provider: "xinghe-sso", providerUserId: "idp-zhoufang" },
     { id: "u8", name: "吴磊", account: "wulei", email: "wulei@xinghe.example", phone: "13700008888", roleIds: ["r-user"], employeeNo: "XH10026" },
     { id: "u9", name: "郑爽", account: "zhengshuang", email: "", phone: "13600009999", roleIds: ["r-sub"], employeeNo: "XH10027" },
     { id: "u10", name: "孙浩", account: "sunhao", email: "sunhao@xinghe.example", phone: "", roleIds: ["r-user"], employeeNo: "" },
@@ -1960,23 +1974,151 @@ table.data tr:hover td { background: #fafafa; }
     return ids;
   }
 
-  function syncCustomerUserInfo(user, employeeNo) {
+  function clearOrgMembership(user) {
+    user.orgId = null;
+    user.pendingOrgId = null;
+  }
+
+  function clearEmployeeBinding(user) {
+    user.employeeNo = "";
+    user.customerInfo = "";
+    clearOrgMembership(user);
+  }
+
+  function lookupCustomerEmployee(employeeNo) {
+    if (window.__customerLookupDown) {
+      throw new Error("customer directory unavailable");
+    }
+    const directory = window.__customerDirectory || CUSTOMER_DIRECTORY;
+    if (!Object.prototype.hasOwnProperty.call(directory, employeeNo)) {
+      return { status: "not_found" };
+    }
+    return { status: "found", record: directory[employeeNo] };
+  }
+
+  function logOrgAnomaly(user, orgId) {
+    const entry = { userId: user.id || "", employeeNo: user.employeeNo || "", orgId: orgId };
+    window.__orgAnomalies.push(entry);
+    console.warn("组织不在当前快照", entry);
+  }
+
+  function applyCustomerSync(user, employeeNo, source) {
+    const roles = (user.roleIds || []).slice();
     const key = (employeeNo || "").trim();
-    user.employeeNo = key;
-    if (!key) {
-      user.customerInfo = "";
-      user.orgId = null;
-      return "cleared";
+    try {
+      if (!key) {
+        clearEmployeeBinding(user);
+        return "no_employee_no";
+      }
+      let outcome;
+      try {
+        outcome = lookupCustomerEmployee(key);
+      } catch (error) {
+        return "failed";
+      }
+      if (!outcome || outcome.status === "not_found") {
+        clearEmployeeBinding(user);
+        if (source === "admin") noteEmployeeSync("not_found");
+        return "not_found";
+      }
+      const record = outcome.record || {};
+      user.employeeNo = key;
+      user.customerInfo = record.info || "";
+      const orgId = record.orgId || "";
+      if (!orgId) {
+        clearOrgMembership(user);
+        return "matched_no_org";
+      }
+      if (!findNode(orgId)) {
+        user.orgId = null;
+        user.pendingOrgId = orgId;
+        logOrgAnomaly(user, orgId);
+        return "org_pending";
+      }
+      user.orgId = orgId;
+      user.pendingOrgId = null;
+      return "matched";
+    } finally {
+      user.roleIds = roles;
     }
-    const record = CUSTOMER_DIRECTORY[key];
-    if (!record) {
-      user.customerInfo = "";
-      user.orgId = null;
-      return "unmatched";
+  }
+
+  function readSsoAssertion(user) {
+    if (!user || !user.provider || !user.providerUserId) return null;
+    if (window.__ssoLookupDown) throw new Error("sso unavailable");
+    const table = window.__ssoAssertions || SSO_ASSERTIONS;
+    const key = user.provider + "|" + user.providerUserId;
+    if (!Object.prototype.hasOwnProperty.call(table, key)) return null;
+    return table[key];
+  }
+
+  function employeeNoForRefresh(user) {
+    try {
+      const assertion = readSsoAssertion(user);
+      if (assertion) return { ok: true, employeeNo: assertion.employeeNo || "" };
+    } catch (error) {
+      return { ok: false };
     }
-    user.customerInfo = record.info;
-    user.orgId = record.orgId;
-    return "matched";
+    return { ok: true, employeeNo: user.employeeNo || "" };
+  }
+
+  function syncLinkedUsers(source) {
+    const summary = { notFound: 0, failed: 0 };
+    users.forEach((user) => {
+      const latest = employeeNoForRefresh(user);
+      if (!latest.ok) {
+        summary.failed += 1;
+        return;
+      }
+      const status = applyCustomerSync(user, latest.employeeNo, source || "refresh");
+      if (status === "not_found") summary.notFound += 1;
+      else if (status === "failed") summary.failed += 1;
+    });
+    return summary;
+  }
+
+  function ssoLogin(provider, providerUserId) {
+    const user = users.find((item) => item.provider === provider && item.providerUserId === providerUserId);
+    if (!user) return { ok: true, matched: false };
+    let assertion;
+    try {
+      assertion = readSsoAssertion(user);
+    } catch (error) {
+      return { ok: true, matched: true, status: "failed" };
+    }
+    if (!assertion) return { ok: true, matched: false };
+    const status = applyCustomerSync(user, assertion.employeeNo || "", "login");
+    return { ok: true, matched: true, status: status };
+  }
+
+  function publishedTree() {
+    const tree = JSON.parse(JSON.stringify(window.__publishedOrgTree || DEFAULT_ORG_TREE));
+    if (window.__includePendingOrg && tree[0]) {
+      tree[0].children = tree[0].children || [];
+      if (!tree[0].children.some((node) => node.id === "d-new")) {
+        tree[0].children.push({ id: "d-new", name: "新业务部", type: "dept" });
+      }
+    }
+    return tree;
+  }
+
+  function rebuildPendingMemberships() {
+    users.forEach((user) => {
+      if (!user.pendingOrgId || !findNode(user.pendingOrgId)) return;
+      user.orgId = user.pendingOrgId;
+      user.pendingOrgId = null;
+    });
+  }
+
+  function reflectOpenDrawer() {
+    if (!state.editingUserId || !document.getElementById("modal-user").classList.contains("show")) return;
+    const user = users.find((item) => item.id === state.editingUserId);
+    if (user) reflectEmployeeFields(user);
+  }
+
+  function reflectEmployeeFields(user) {
+    document.getElementById("uf-employee-no").value = user.employeeNo || "";
+    document.getElementById("uf-customer-info").value = user.customerInfo || "";
   }
 
   function typeIcon(type) {
@@ -2011,12 +2153,26 @@ table.data tr:hover td { background: #fafafa; }
     document.getElementById(id).classList.remove("show");
   }
 
+  function dismissConfirm(confirmed) {
+    const cb = confirmed ? state.confirmCb : state.confirmCancelCb;
+    state.confirmCb = null;
+    state.confirmCancelCb = null;
+    closeModal("modal-confirm");
+    if (cb) cb();
+  }
+
   document.querySelectorAll("[data-close]").forEach((btn) => {
-    btn.addEventListener("click", () => closeModal(btn.getAttribute("data-close")));
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-close");
+      if (id === "modal-confirm") dismissConfirm(false);
+      else closeModal(id);
+    });
   });
   document.querySelectorAll(".modal-mask").forEach((mask) => {
     mask.addEventListener("click", (e) => {
-      if (e.target === mask) mask.classList.remove("show");
+      if (e.target !== mask) return;
+      if (mask.id === "modal-confirm") dismissConfirm(false);
+      else mask.classList.remove("show");
     });
   });
 
@@ -2028,14 +2184,10 @@ table.data tr:hover td { background: #fafafa; }
     okBtn.textContent = opts.okText || "确定";
     okBtn.className = "btn " + (opts.danger === false ? "btn-primary" : "btn-danger-solid");
     state.confirmCb = onOk;
+    state.confirmCancelCb = opts.onCancel || null;
     openModal("modal-confirm");
   }
-  document.getElementById("btn-confirm-ok").addEventListener("click", () => {
-    const cb = state.confirmCb;
-    state.confirmCb = null;
-    closeModal("modal-confirm");
-    if (cb) cb();
-  });
+  document.getElementById("btn-confirm-ok").addEventListener("click", () => dismissConfirm(true));
 
   // ——— Nav ———
   const PAGE_TITLES = {
@@ -2167,11 +2319,20 @@ table.data tr:hover td { background: #fafafa; }
   }
 
   document.getElementById("btn-refresh-org").addEventListener("click", () => {
-    orgTree = JSON.parse(JSON.stringify(DEFAULT_ORG_TREE));
+    if (window.__orgPublishDown) {
+      toast("组织发布失败，未更新成员", "error");
+      return;
+    }
+    orgTree = publishedTree();
     if (state.selectedOrgId && !findNode(state.selectedOrgId)) state.selectedOrgId = null;
-    toast("已从客户系统刷新组织");
+    const summary = syncLinkedUsers("refresh");
+    rebuildPendingMemberships();
+    if (summary.failed) toast("工号查询失败，未更新员工工号", "error");
+    else toast("已从客户系统刷新组织");
     renderMainTree();
     renderUsers();
+    reflectOpenDrawer();
+    if (state.page === "kb-perm") renderKbPerm();
   });
 
   document.getElementById("btn-expand-all").addEventListener("click", () => {
@@ -2340,7 +2501,7 @@ table.data tr:hover td { background: #fafafa; }
       "确认变更员工工号",
       `确认将员工工号从 <strong>${escapeHtml(from)}</strong> 改为 <strong>${escapeHtml(to)}</strong>？`,
       onOk,
-      { danger: false, okText: "确认并同步" }
+      { danger: false, okText: "确认并同步", onCancel: () => reflectEmployeeFields(user) }
     );
   }
 
@@ -2374,6 +2535,14 @@ table.data tr:hover td { background: #fafafa; }
       document.getElementById("uf-customer-info").value = "";
       fillAccountType(["r-user"]);
     }
+    state.draftEmployee = {
+      employeeNo: user ? (user.employeeNo || "") : "",
+      customerInfo: user ? (user.customerInfo || "") : "",
+      orgId: user && user.orgId ? user.orgId : null,
+      pendingOrgId: user && user.pendingOrgId ? user.pendingOrgId : null,
+    };
+    const ssoButton = document.getElementById("btn-sso-login");
+    ssoButton.hidden = !(user && user.provider && user.providerUserId);
     openModal("modal-user");
   }
 
@@ -2397,9 +2566,32 @@ table.data tr:hover td { background: #fafafa; }
     user.roleIds = fields.roleIds.slice();
   }
 
-  function finishSave(message) {
+  function noteEmployeeSync(status) {
+    if (status === "not_found") {
+      toast("工号错误", "error");
+      state.pendingEmployeeNotice = "工号错误";
+    } else if (status === "failed") {
+      toast("工号查询失败，未更新员工工号", "error");
+      state.pendingEmployeeNotice = "工号查询失败，未更新员工工号";
+    } else {
+      state.pendingEmployeeNotice = null;
+      return;
+    }
+    const notice = state.pendingEmployeeNotice;
+    setTimeout(() => {
+      if (state.pendingEmployeeNotice === notice) state.pendingEmployeeNotice = null;
+    }, 0);
+  }
+
+  function takeEmployeeNotice() {
+    const notice = state.pendingEmployeeNotice || "";
+    state.pendingEmployeeNotice = null;
+    return notice;
+  }
+
+  function finishSave(message, type) {
     closeModal("modal-user");
-    toast(message);
+    toast(message, type || "success");
     renderUsers();
     renderMainTree();
     if (state.page === "kb-perm") renderKbPerm();
@@ -2412,7 +2604,78 @@ table.data tr:hover td { background: #fafafa; }
     if (user) deleteUser(user);
   });
 
+  function employeeNumberTaken(employeeNo, exceptId) {
+    return !!(employeeNo && users.some((user) => (user.employeeNo || "") === employeeNo && user.id !== exceptId));
+  }
+
+  function rememberDraft(record) {
+    state.draftEmployee = {
+      employeeNo: record.employeeNo || "",
+      customerInfo: record.customerInfo || "",
+      orgId: record.orgId || null,
+      pendingOrgId: record.pendingOrgId || null,
+    };
+  }
+
+  function applyEmployeeLookup(record, employeeNo, exceptId) {
+    const next = (employeeNo || "").trim();
+    if (employeeNumberTaken(next, exceptId)) {
+      reflectEmployeeFields(record);
+      toast("该员工工号已绑定其他用户", "error");
+      return "duplicate";
+    }
+    const status = applyCustomerSync(record, next, "admin");
+    reflectEmployeeFields(record);
+    return status;
+  }
+
+  function publishEmployee(user) {
+    renderUsers();
+    renderMainTree();
+    if (state.page === "kb-perm") renderKbPerm();
+  }
+
+  function blurEmployeeNo() {
+    const next = document.getElementById("uf-employee-no").value.trim();
+    if (!state.editingUserId) {
+      const draft = state.draftEmployee || { employeeNo: "", customerInfo: "", orgId: null };
+      if ((draft.employeeNo || "") === next) return;
+      const record = {
+        employeeNo: draft.employeeNo || "",
+        customerInfo: draft.customerInfo || "",
+        orgId: draft.orgId || null,
+        pendingOrgId: draft.pendingOrgId || null,
+        roleIds: [],
+      };
+      const status = applyEmployeeLookup(record, next, null);
+      if (status === "failed" || status === "duplicate") return;
+      rememberDraft(record);
+      return;
+    }
+    const user = users.find((item) => item.id === state.editingUserId);
+    if (!user || (user.employeeNo || "") === next) return;
+    if (employeeNumberTaken(next, user.id)) {
+      reflectEmployeeFields(user);
+      toast("该员工工号已绑定其他用户", "error");
+      return;
+    }
+    confirmEmployeeNoChange(user, next, () => {
+      const status = applyEmployeeLookup(user, next, user.id);
+      if (status !== "failed" && status !== "duplicate") publishEmployee(user);
+    });
+  }
+
+  document.getElementById("uf-employee-no").addEventListener("blur", blurEmployeeNo);
+  document.getElementById("btn-sso-login").addEventListener("click", () => {
+    const user = users.find((item) => item.id === state.editingUserId);
+    if (!user || !user.provider || !user.providerUserId) return;
+    ssoLogin(user.provider, user.providerUserId);
+    reflectEmployeeFields(user);
+    publishEmployee(user);
+  });
+
   document.getElementById("btn-save-user").addEventListener("click", () => {
+    if (document.getElementById("modal-confirm").classList.contains("show")) return;
     const fields = readUserFields();
     const isEdit = !!state.editingUserId;
     let ok = true;
@@ -2429,11 +2692,9 @@ table.data tr:hover td { background: #fafafa; }
       toast("账号已存在", "error");
       return;
     }
-    if (fields.employeeNo && users.some((user) => (user.employeeNo || "") === fields.employeeNo && user.id !== state.editingUserId)) {
-      toast("该员工工号已绑定其他用户", "error");
-      return;
-    }
+    const notice = takeEmployeeNotice();
     if (!isEdit) {
+      const draft = state.draftEmployee || { employeeNo: "", customerInfo: "", orgId: null };
       const user = {
         id: "u" + Date.now(),
         name: fields.name,
@@ -2441,27 +2702,21 @@ table.data tr:hover td { background: #fafafa; }
         email: fields.email,
         phone: fields.phone,
         roleIds: fields.roleIds.slice(),
-        employeeNo: "",
-        customerInfo: "",
-        orgId: null,
+        employeeNo: draft.employeeNo || "",
+        customerInfo: draft.customerInfo || "",
+        orgId: draft.orgId || null,
+        pendingOrgId: draft.pendingOrgId || null,
       };
-      if (fields.employeeNo) syncCustomerUserInfo(user, fields.employeeNo);
       users.push(user);
       kbCandidateUsers.push({ account: user.account, name: user.name, email: user.email || "" });
-      finishSave("已创建用户 " + fields.name);
+      finishSave(notice || ("已创建用户 " + fields.name), notice ? "error" : "success");
       return;
     }
     const user = users.find((item) => item.id === state.editingUserId);
     const previousAccount = user.account;
-    const changedNo = (user.employeeNo || "") !== fields.employeeNo;
-    const commit = () => {
-      applyPlatformFields(user, fields);
-      retargetDirectGrants(previousAccount, user);
-      if (changedNo) syncCustomerUserInfo(user, fields.employeeNo);
-      finishSave("已保存");
-    };
-    if (changedNo) confirmEmployeeNoChange(user, fields.employeeNo, commit);
-    else commit();
+    applyPlatformFields(user, fields);
+    retargetDirectGrants(previousAccount, user);
+    finishSave(notice || "已保存", notice ? "error" : "success");
   });
 
   // ——— Knowledge base authorization list ———
@@ -2652,11 +2907,7 @@ table.data tr:hover td { background: #fafafa; }
   });
   document.getElementById("btn-confirm-kb-auth").addEventListener("click", confirmKbAuth);
 
-  users.forEach((user) => {
-    user.customerInfo = "";
-    user.orgId = null;
-    if ((user.employeeNo || "").trim()) syncCustomerUserInfo(user, user.employeeNo);
-  });
+  syncLinkedUsers("refresh");
 
   // ——— Init ———
   renderMainTree();
