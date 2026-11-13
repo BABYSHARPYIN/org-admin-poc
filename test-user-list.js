@@ -314,7 +314,7 @@ async function main() {
     })()`);
     check(drawer.title === "用户信息", "opening 尹悦 should title the drawer 用户信息, got " + drawer.title);
     check(
-      drawer.labels.join(" / ") === "姓名 / 账号 / 邮箱 / 手机号 / 账号类型 / 员工工号 / 用户信息",
+      drawer.labels.join(" / ") === "姓名 / 账号 / 邮箱 / 手机号 / 账号类型 / 员工工号 / 员工信息",
       "edit drawer fields should follow production order plus the POC-only fields, got " + drawer.labels.join(" / ")
     );
     check(drawer.emailPlaceholder === "请输入邮箱地址", "邮箱 placeholder should be 请输入邮箱地址, got " + drawer.emailPlaceholder);
@@ -327,7 +327,7 @@ async function main() {
     check(drawer.value === "普通用户", "尹悦 should open as 普通用户, got " + drawer.value);
     check(!drawer.forbidden, "rendered page should not contain 功能角色");
     check(drawer.employeeLabel === "员工工号", "员工工号 label should stay, got " + drawer.employeeLabel);
-    check(drawer.customerLabel === "用户信息", "readonly customer JSON label should stay 用户信息, got " + drawer.customerLabel);
+    check(drawer.customerLabel === "员工信息", "readonly customer JSON label should be 员工信息, got " + drawer.customerLabel);
 
     const saved = await evaluate(`(() => {
       const select = document.getElementById("uf-account-type");
