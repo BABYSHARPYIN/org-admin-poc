@@ -2628,6 +2628,7 @@ table.data tr:hover td { background: #fafafa; }
     }
     const status = applyCustomerSync(record, next, "admin");
     if (status === "not_found" || status === "failed") {
+      reflectEmployeeFields(record);
       state.employeeLookupError = status === "not_found" ? "工号错误" : "工号查询失败，未更新员工工号";
       if (status === "failed") noteEmployeeSync(status);
       return status;

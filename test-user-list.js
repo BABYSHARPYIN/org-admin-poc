@@ -499,7 +499,7 @@ async function main() {
     check(unknownEdit.confirmed && unknownEdit.confirmTitle === "确认变更员工工号", "blurring a changed 工号 should ask for confirmation before lookup, got " + unknownEdit.confirmTitle);
     check(unknownEdit.toast === "工号错误" && unknownEdit.toastError, "unknown 工号 should report 工号错误 on blur, got " + unknownEdit.toast);
     check(unknownEdit.drawerOpen, "工号 lookup should apply in the open drawer without waiting for 保存");
-    check(unknownEdit.employeeNo === "NO-SUCH-01", "unknown 工号 should retain the entered number, got " + unknownEdit.employeeNo);
+    check(unknownEdit.employeeNo === "XH10024", "unknown 工号 should restore the previous correct number, got " + unknownEdit.employeeNo);
     check(unknownEdit.customerInfo.includes("XH10024"), "unknown 工号 should retain existing employee JSON, got " + unknownEdit.customerInfo);
     check(unknownEdit.cells[4].includes("算法工程师"), "unknown 工号 should retain existing organization, got " + unknownEdit.cells[4]);
     check(
@@ -519,8 +519,8 @@ async function main() {
         org: document.querySelector("#user-tbody tr").children[4].textContent.trim(),
       };
     })()`);
-    check(unknownSaved.toast === "工号错误" && unknownSaved.drawerOpen, "saving an invalid number should show an error and keep the drawer open, got " + JSON.stringify(unknownSaved));
-    check(unknownSaved.employeeNo === "NO-SUCH-01" && unknownSaved.customerInfo.includes("XH10024") && unknownSaved.org.includes("算法工程师"), "failed save should retain the input, employee JSON and organization, got " + JSON.stringify(unknownSaved));
+    check(unknownSaved.toast === "已保存" && !unknownSaved.drawerOpen, "saving after rollback should save the correct binding, got " + JSON.stringify(unknownSaved));
+    check(unknownSaved.employeeNo === "XH10024" && unknownSaved.customerInfo.includes("XH10024") && unknownSaved.org.includes("算法工程师"), "save after rollback should retain the correct number, employee JSON and organization, got " + JSON.stringify(unknownSaved));
     const reopened = await evaluate(`(() => {
       document.querySelector('#modal-user [data-close="modal-user"]').click();
       document.querySelector("#user-tbody [data-view]").click();
@@ -567,7 +567,7 @@ async function main() {
     check(!createdBlur.confirmed, "creating a user should not ask to confirm a new 工号");
     check(createdBlur.drawerOpen, "create lookup should stay in the new-user drawer");
     check(createdBlur.toast === "工号错误", "creating an unknown 工号 should report 工号错误 on blur, got " + createdBlur.toast);
-    check(createdBlur.employeeNo === "NO-SUCH-02" && createdBlur.customerInfo === "", "creating an unknown 工号 should preserve the input, got " + JSON.stringify(createdBlur));
+    check(createdBlur.employeeNo === "" && createdBlur.customerInfo === "", "creating an unknown 工号 should restore the previous empty binding, got " + JSON.stringify(createdBlur));
     const createdUnknown = await evaluate(`(() => {
       document.getElementById("btn-save-user").click();
       const toast = document.querySelector("#toast-wrap .toast");
@@ -583,8 +583,8 @@ async function main() {
       result.created = !!document.querySelector("#user-tbody [data-view]");
       return result;
     })()`);
-    check(createdUnknown.toast === "工号错误" && createdUnknown.drawerOpen && !createdUnknown.created, "invalid employee number should not save or close the new-user drawer, got " + JSON.stringify(createdUnknown));
-    check(createdUnknown.employeeNo === "NO-SUCH-02" && createdUnknown.name === "未建档", "failed create should preserve the form, got " + JSON.stringify(createdUnknown));
+    check(createdUnknown.toast === "已创建用户 未建档" && !createdUnknown.drawerOpen && createdUnknown.created, "new user should save without an employee binding after rollback, got " + JSON.stringify(createdUnknown));
+    check(createdUnknown.employeeNo === "" && createdUnknown.name === "未建档", "rollback should retain the other form fields, got " + JSON.stringify(createdUnknown));
 
     const draftRecovery = await evaluate(`(() => {
       document.getElementById("btn-create-user").click();
@@ -617,7 +617,7 @@ async function main() {
       document.querySelector('#modal-user [data-close="modal-user"]').click();
       return result;
     })()`);
-    check(draftRecovery.employeeNo === "NO-SUCH-03" && draftRecovery.customerInfo === draftRecovery.previousInfo && draftRecovery.customerInfo.includes("XH10029") && draftRecovery.toast === "工号错误", "a failed lookup should retain a previously populated new-user draft, got " + JSON.stringify(draftRecovery));
+    check(draftRecovery.employeeNo === "XH10029" && draftRecovery.customerInfo === draftRecovery.previousInfo && draftRecovery.customerInfo.includes("XH10029") && draftRecovery.toast === "工号错误", "a failed lookup should retain a previously populated new-user draft, got " + JSON.stringify(draftRecovery));
     check(draftRecovery.savedAfterCorrection && draftRecovery.savedToast === "已创建用户 修正工号", "correcting the invalid number should allow save without a stale error, got " + JSON.stringify(draftRecovery));
 
     const blankCreate = await evaluate(`(() => {
