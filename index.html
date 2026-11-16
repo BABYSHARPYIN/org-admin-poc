@@ -2017,8 +2017,8 @@ table.data tr:hover td { background: #fafafa; }
         return "failed";
       }
       if (!outcome || outcome.status === "not_found") {
-        clearEmployeeBinding(user);
         if (source === "admin") noteEmployeeSync("not_found");
+        else clearEmployeeBinding(user);
         return "not_found";
       }
       const record = outcome.record || {};
@@ -2507,6 +2507,8 @@ table.data tr:hover td { background: #fafafa; }
 
   function openUserForm(userId) {
     state.editingUserId = userId || null;
+    state.employeeLookupError = null;
+    state.pendingEmployeeNotice = null;
     const isEdit = !!userId;
     const user = isEdit ? users.find((item) => item.id === userId) : null;
     document.getElementById("user-modal-title").textContent = isEdit ? "用户信息" : "新增用户";
@@ -2625,6 +2627,12 @@ table.data tr:hover td { background: #fafafa; }
       return "duplicate";
     }
     const status = applyCustomerSync(record, next, "admin");
+    if (status === "not_found" || status === "failed") {
+      state.employeeLookupError = status === "not_found" ? "工号错误" : "工号查询失败，未更新员工工号";
+      if (status === "failed") noteEmployeeSync(status);
+      return status;
+    }
+    state.employeeLookupError = null;
     reflectEmployeeFields(record);
     return status;
   }
@@ -2648,7 +2656,7 @@ table.data tr:hover td { background: #fafafa; }
         roleIds: [],
       };
       const status = applyEmployeeLookup(record, next, null);
-      if (status === "failed" || status === "duplicate") return;
+      if (status === "not_found" || status === "failed" || status === "duplicate") return;
       rememberDraft(record);
       return;
     }
@@ -2661,7 +2669,7 @@ table.data tr:hover td { background: #fafafa; }
     }
     confirmEmployeeNoChange(user, next, () => {
       const status = applyEmployeeLookup(user, next, user.id);
-      if (status !== "failed" && status !== "duplicate") publishEmployee(user);
+      if (status !== "not_found" && status !== "failed" && status !== "duplicate") publishEmployee(user);
     });
   }
 
@@ -2692,7 +2700,14 @@ table.data tr:hover td { background: #fafafa; }
       toast("账号已存在", "error");
       return;
     }
-    const notice = takeEmployeeNotice();
+    const employee = isEdit ? users.find((item) => item.id === state.editingUserId) : state.draftEmployee;
+    if (fields.employeeNo !== ((employee && employee.employeeNo) || "")) {
+      toast(state.employeeLookupError || "请先确认员工工号变更", "error");
+      return;
+    }
+    const notice = state.employeeLookupError ? "" : takeEmployeeNotice();
+    state.employeeLookupError = null;
+    state.pendingEmployeeNotice = null;
     if (!isEdit) {
       const draft = state.draftEmployee || { employeeNo: "", customerInfo: "", orgId: null };
       const user = {
