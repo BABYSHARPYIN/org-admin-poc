@@ -1434,18 +1434,13 @@ table.data tr:hover td { background: #fafafa; }
             <div class="field-error" id="err-roles">请选择账号类型</div>
           </div>
           <div class="form-row">
-            <label for="uf-employee-no">员工工号</label>
-            <input class="input" id="uf-employee-no" maxlength="32" />
-          </div>
-          <div class="form-row">
-            <label for="uf-customer-info">员工信息</label>
-            <textarea class="textarea json-view" id="uf-customer-info" readonly></textarea>
+            <label for="uf-employee-no">SSO_ID</label>
+            <input class="input" id="uf-employee-no" readonly />
           </div>
         </form>
       </div>
       <div class="modal-footer">
         <button class="btn btn-danger" type="button" id="btn-delete-user" hidden>删除用户</button>
-        <button class="btn" type="button" id="btn-sso-login" hidden>SSO 登录</button>
         <span style="flex:1"></span>
         <button class="btn" type="button" data-close="modal-user">取消</button>
         <button class="btn btn-primary" type="button" id="btn-save-user">保存</button>
@@ -1461,14 +1456,15 @@ table.data tr:hover td { background: #fafafa; }
       </div>
       <div class="modal-body">
         <div class="form-row">
-          <label>成员或组织</label>
+          <label for="kb-auth-search">成员或部门</label>
           <div class="search-box">
             <span class="search-ico">⌕</span>
-            <input class="input" id="kb-auth-search" placeholder="请输入搜索内容" />
+            <input class="input" id="kb-auth-search" aria-describedby="kb-auth-department-hint" placeholder="请输入搜索内容" />
           </div>
           <div class="kb-member-list" id="kb-auth-picker"></div>
           <div class="empty-state kb-member-empty" id="kb-auth-empty" style="display:none">暂无数据</div>
           <div class="field-error" id="err-kb-auth">请选择一个授权对象</div>
+          <p class="form-hint" id="kb-auth-department-hint">为部门授权后，该部门下的所有用户都将获得所选角色在此知识库中的权限。</p>
         </div>
         <div class="kb-member-permission-row">
           <label>角色</label>
@@ -2017,8 +2013,7 @@ table.data tr:hover td { background: #fafafa; }
         return "failed";
       }
       if (!outcome || outcome.status === "not_found") {
-        if (source === "admin") noteEmployeeSync("not_found");
-        else clearEmployeeBinding(user);
+        clearEmployeeBinding(user);
         return "not_found";
       }
       const record = outcome.record || {};
@@ -2118,7 +2113,6 @@ table.data tr:hover td { background: #fafafa; }
 
   function reflectEmployeeFields(user) {
     document.getElementById("uf-employee-no").value = user.employeeNo || "";
-    document.getElementById("uf-customer-info").value = user.customerInfo || "";
   }
 
   function typeIcon(type) {
@@ -2494,21 +2488,8 @@ table.data tr:hover td { background: #fafafa; }
     }
   }
 
-  function confirmEmployeeNoChange(user, next, onOk) {
-    const from = user.employeeNo || "空";
-    const to = next || "空";
-    confirmDialog(
-      "确认变更员工工号",
-      `确认将员工工号从 <strong>${escapeHtml(from)}</strong> 改为 <strong>${escapeHtml(to)}</strong>？`,
-      onOk,
-      { danger: false, okText: "确认并同步", onCancel: () => reflectEmployeeFields(user) }
-    );
-  }
-
   function openUserForm(userId) {
     state.editingUserId = userId || null;
-    state.employeeLookupError = null;
-    state.pendingEmployeeNotice = null;
     const isEdit = !!userId;
     const user = isEdit ? users.find((item) => item.id === userId) : null;
     document.getElementById("user-modal-title").textContent = isEdit ? "用户信息" : "新增用户";
@@ -2524,7 +2505,6 @@ table.data tr:hover td { background: #fafafa; }
       document.getElementById("uf-email").value = user.email || "";
       document.getElementById("uf-phone").value = user.phone || "";
       document.getElementById("uf-employee-no").value = user.employeeNo || "";
-      document.getElementById("uf-customer-info").value = user.customerInfo || "";
       fillAccountType(user.roleIds);
     } else {
       document.getElementById("uf-id").value = "";
@@ -2534,17 +2514,8 @@ table.data tr:hover td { background: #fafafa; }
       document.getElementById("uf-email").value = "";
       document.getElementById("uf-phone").value = "";
       document.getElementById("uf-employee-no").value = "";
-      document.getElementById("uf-customer-info").value = "";
       fillAccountType(["r-user"]);
     }
-    state.draftEmployee = {
-      employeeNo: user ? (user.employeeNo || "") : "",
-      customerInfo: user ? (user.customerInfo || "") : "",
-      orgId: user && user.orgId ? user.orgId : null,
-      pendingOrgId: user && user.pendingOrgId ? user.pendingOrgId : null,
-    };
-    const ssoButton = document.getElementById("btn-sso-login");
-    ssoButton.hidden = !(user && user.provider && user.providerUserId);
     openModal("modal-user");
   }
 
@@ -2555,7 +2526,6 @@ table.data tr:hover td { background: #fafafa; }
       password: document.getElementById("uf-password").value,
       email: document.getElementById("uf-email").value.trim(),
       phone: document.getElementById("uf-phone").value.trim(),
-      employeeNo: document.getElementById("uf-employee-no").value.trim(),
       roleIds: document.getElementById("uf-account-type").value ? [document.getElementById("uf-account-type").value] : [],
     };
   }
@@ -2566,29 +2536,6 @@ table.data tr:hover td { background: #fafafa; }
     user.email = fields.email;
     user.phone = fields.phone;
     user.roleIds = fields.roleIds.slice();
-  }
-
-  function noteEmployeeSync(status) {
-    if (status === "not_found") {
-      toast("工号错误", "error");
-      state.pendingEmployeeNotice = "工号错误";
-    } else if (status === "failed") {
-      toast("工号查询失败，未更新员工工号", "error");
-      state.pendingEmployeeNotice = "工号查询失败，未更新员工工号";
-    } else {
-      state.pendingEmployeeNotice = null;
-      return;
-    }
-    const notice = state.pendingEmployeeNotice;
-    setTimeout(() => {
-      if (state.pendingEmployeeNotice === notice) state.pendingEmployeeNotice = null;
-    }, 0);
-  }
-
-  function takeEmployeeNotice() {
-    const notice = state.pendingEmployeeNotice || "";
-    state.pendingEmployeeNotice = null;
-    return notice;
   }
 
   function finishSave(message, type) {
@@ -2604,83 +2551,6 @@ table.data tr:hover td { background: #fafafa; }
   document.getElementById("btn-delete-user").addEventListener("click", () => {
     const user = users.find((item) => item.id === state.editingUserId);
     if (user) deleteUser(user);
-  });
-
-  function employeeNumberTaken(employeeNo, exceptId) {
-    return !!(employeeNo && users.some((user) => (user.employeeNo || "") === employeeNo && user.id !== exceptId));
-  }
-
-  function rememberDraft(record) {
-    state.draftEmployee = {
-      employeeNo: record.employeeNo || "",
-      customerInfo: record.customerInfo || "",
-      orgId: record.orgId || null,
-      pendingOrgId: record.pendingOrgId || null,
-    };
-  }
-
-  function applyEmployeeLookup(record, employeeNo, exceptId) {
-    const next = (employeeNo || "").trim();
-    if (employeeNumberTaken(next, exceptId)) {
-      reflectEmployeeFields(record);
-      toast("该员工工号已绑定其他用户", "error");
-      return "duplicate";
-    }
-    const status = applyCustomerSync(record, next, "admin");
-    if (status === "not_found" || status === "failed") {
-      reflectEmployeeFields(record);
-      state.employeeLookupError = status === "not_found" ? "工号错误" : "工号查询失败，未更新员工工号";
-      if (status === "failed") noteEmployeeSync(status);
-      return status;
-    }
-    state.employeeLookupError = null;
-    reflectEmployeeFields(record);
-    return status;
-  }
-
-  function publishEmployee(user) {
-    renderUsers();
-    renderMainTree();
-    if (state.page === "kb-perm") renderKbPerm();
-  }
-
-  function blurEmployeeNo() {
-    const next = document.getElementById("uf-employee-no").value.trim();
-    if (!state.editingUserId) {
-      const draft = state.draftEmployee || { employeeNo: "", customerInfo: "", orgId: null };
-      if ((draft.employeeNo || "") === next) return;
-      const record = {
-        employeeNo: draft.employeeNo || "",
-        customerInfo: draft.customerInfo || "",
-        orgId: draft.orgId || null,
-        pendingOrgId: draft.pendingOrgId || null,
-        roleIds: [],
-      };
-      const status = applyEmployeeLookup(record, next, null);
-      if (status === "not_found" || status === "failed" || status === "duplicate") return;
-      rememberDraft(record);
-      return;
-    }
-    const user = users.find((item) => item.id === state.editingUserId);
-    if (!user || (user.employeeNo || "") === next) return;
-    if (employeeNumberTaken(next, user.id)) {
-      reflectEmployeeFields(user);
-      toast("该员工工号已绑定其他用户", "error");
-      return;
-    }
-    confirmEmployeeNoChange(user, next, () => {
-      const status = applyEmployeeLookup(user, next, user.id);
-      if (status !== "not_found" && status !== "failed" && status !== "duplicate") publishEmployee(user);
-    });
-  }
-
-  document.getElementById("uf-employee-no").addEventListener("blur", blurEmployeeNo);
-  document.getElementById("btn-sso-login").addEventListener("click", () => {
-    const user = users.find((item) => item.id === state.editingUserId);
-    if (!user || !user.provider || !user.providerUserId) return;
-    ssoLogin(user.provider, user.providerUserId);
-    reflectEmployeeFields(user);
-    publishEmployee(user);
   });
 
   document.getElementById("btn-save-user").addEventListener("click", () => {
@@ -2701,16 +2571,7 @@ table.data tr:hover td { background: #fafafa; }
       toast("账号已存在", "error");
       return;
     }
-    const employee = isEdit ? users.find((item) => item.id === state.editingUserId) : state.draftEmployee;
-    if (fields.employeeNo !== ((employee && employee.employeeNo) || "")) {
-      toast(state.employeeLookupError || "请先确认员工工号变更", "error");
-      return;
-    }
-    const notice = state.employeeLookupError ? "" : takeEmployeeNotice();
-    state.employeeLookupError = null;
-    state.pendingEmployeeNotice = null;
     if (!isEdit) {
-      const draft = state.draftEmployee || { employeeNo: "", customerInfo: "", orgId: null };
       const user = {
         id: "u" + Date.now(),
         name: fields.name,
@@ -2718,21 +2579,21 @@ table.data tr:hover td { background: #fafafa; }
         email: fields.email,
         phone: fields.phone,
         roleIds: fields.roleIds.slice(),
-        employeeNo: draft.employeeNo || "",
-        customerInfo: draft.customerInfo || "",
-        orgId: draft.orgId || null,
-        pendingOrgId: draft.pendingOrgId || null,
+        employeeNo: "",
+        customerInfo: "",
+        orgId: null,
+        pendingOrgId: null,
       };
       users.push(user);
       kbCandidateUsers.push({ account: user.account, name: user.name, email: user.email || "" });
-      finishSave(notice || ("已创建用户 " + fields.name), notice ? "error" : "success");
+      finishSave("已创建用户 " + fields.name);
       return;
     }
     const user = users.find((item) => item.id === state.editingUserId);
     const previousAccount = user.account;
     applyPlatformFields(user, fields);
     retargetDirectGrants(previousAccount, user);
-    finishSave(notice || "已保存", notice ? "error" : "success");
+    finishSave("已保存");
   });
 
   // ——— Knowledge base authorization list ———
