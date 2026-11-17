@@ -299,7 +299,7 @@ async function main() {
       page.openDetails();
       assert.equal(page.get('btn-org-sync-confirm').hidden, false);
       assert.equal(page.get('btn-org-sync-cancel').hidden, false);
-      assert.match(page.text('org-sync-detail-brief'), /确认|审核/);
+      assert.doesNotMatch(page.text('org-sync-detail-brief'), /确认|审核|生效|人工处理|已取消|请稍候/);
       page.get('btn-org-sync-cancel').click();
       assert.equal(page.treeText(), before, 'cancelling keeps the latest successful tree');
       assert.equal(page.text('user-tbody'), usersBefore);
@@ -369,7 +369,7 @@ async function main() {
       const pendingBrief = page.text('org-sync-detail-brief');
       assert.match(pendingBrief, /星河数据子公司/, 'brief must name the actual removed branch');
       assert.match(pendingBrief, /33.3|三分之一/, 'brief must explain the significant decrease');
-      assert.match(pendingBrief, /确认|审核/, 'brief must explain that administrator action is needed');
+      assert.doesNotMatch(pendingBrief, /确认|审核|生效|人工处理|已取消|请稍候/, 'summary contains data differences only');
       page.closeDetails();
       assert.equal(page.treeText(), before, 'closing details is not consent');
       assert.equal(page.get('org-sync-dot').hidden, false, 'pending dot must survive reading/closing details');
@@ -407,6 +407,7 @@ async function main() {
         assert.equal(page.get('btn-org-sync-cancel').hidden, true, 'finished task has no pending approval action');
         const brief = page.text('org-sync-detail-brief');
         assert(brief.length > 10, 'terminal task needs a concise natural language brief');
+        assert.doesNotMatch(brief, /生效|人工处理|已取消|请确认|请重新|请稍候/, 'task state and instructions stay outside the summary');
         assert.equal(page.document.getElementById('btn-org-sync-retry'), null, 'records do not offer a retry action');
         if (scenario === 'success') assert.match(brief, /新业务部/, 'success brief must use actual added node name');
         if (scenario === 'unchanged') assert.match(brief, /无变化|未发现/, 'unchanged brief must describe comparison outcome');

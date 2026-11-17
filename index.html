@@ -2439,16 +2439,13 @@ table.data tr:hover td { background: #fafafa; }
     document.getElementById("org-sync-detail-source").textContent = task ? (task.source === "scheduled" ? "系统" : "admin") : "—";
     document.getElementById("org-sync-detail-start").textContent = syncTime(task?.startedAt);
     document.getElementById("org-sync-detail-end").textContent = syncTime(task?.completedAt);
-    let brief = "暂无同步记录。发起组织刷新后，可在这里查看最近一次任务的进展与简报。";
-    if (status === "running") brief = "正在获取最新组织与用户数据。完成后，AGENT 将对比更新前后的数据并生成变更简报。";
-    else if (status === "failure") brief = `本次同步未完成：${task.error} 原有组织与用户数据保持不变。`;
-    else if (task?.brief) {
+    let brief = "暂无可对比的数据。";
+    if (task?.brief) {
       brief = task.brief;
-      if (status === "pending") brief += ` 组织节点减少 ${task.stats.dropPercent}%，已触发误删保护。变更尚未生效，请确认更新或取消本次更新。`;
-      if (status === "publishing") brief += " 正在应用本次更新，请稍候。";
-      if (status === "success") brief += " 本次更新已生效，无需人工处理。";
-      if (status === "unchanged") brief += " 无需人工处理。";
-      if (status === "cancelled") brief += " 本次更新已取消，原有数据保持不变。";
+      if (task.stats?.dropPercent > 0) brief += ` 组织节点数量减少 ${task.stats.dropPercent}%。`;
+    } else if (status === "failure") {
+      const reason = (task.error || "").replace(/，?请[^。]*。?/g, "");
+      brief = (reason ? reason.replace(/[。！.!]+$/, "") + "。" : "") + "暂无可对比的数据。";
     }
     document.getElementById("org-sync-detail-brief").textContent = brief;
     document.getElementById("btn-org-sync-confirm").hidden = status !== "pending";
