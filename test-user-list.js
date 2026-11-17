@@ -224,7 +224,7 @@ async function main() {
     }
     const liu = snapshot.rows.find((row) => row[1] === "liuyang");
     check(!!liu, "刘洋 should be on the first page");
-    if (liu) check(liu[4] === "--", "users without an org membership should show --, got " + liu[4]);
+    if (liu) check(liu[4] === "星河科技集团", "users without an org membership should show the root name, got " + liu[4]);
 
     const byJob = await evaluate(`(() => {
       const input = document.getElementById("user-search");

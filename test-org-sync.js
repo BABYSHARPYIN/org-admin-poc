@@ -83,13 +83,43 @@ async function main() {
     baseline.dom.window.close();
   }
 
+  await test('users without organization belong to the root in display and organization filters', async () => {
+    const page = loadPage();
+    try {
+      const search = page.get('user-search');
+      search.value = 'liuyang';
+      search.dispatchEvent(new page.window.Event('input'));
+      const cell = page.document.querySelector('#user-tbody .org-cell');
+      assert.equal(cell?.textContent.trim(), '星河科技集团', 'user without SSO organization must display the root name');
+      const root = [...page.document.querySelectorAll('#org-tree .tree-label')].find((label) => label.textContent === '星河科技集团')?.closest('.tree-row');
+      assert(root, 'root filter must exist');
+      root.click();
+      assert(page.text('user-tbody').includes('liuyang'), 'root filter must actually include the user');
+      const department = [...page.document.querySelectorAll('#org-tree .tree-label')].find((label) => label.textContent === '研发部')?.closest('.tree-row');
+      assert(department, 'department filter must exist');
+      department.click();
+      assert(!page.text('user-tbody').includes('liuyang'), 'root membership must not put user in child departments');
+      page.get('btn-create-user').click();
+      page.get('uf-name').value = '无组织新用户';
+      page.get('uf-account').value = 'root-user-test';
+      page.get('uf-password').value = 'secret1';
+      page.get('btn-save-user').click();
+      search.value = 'root-user-test';
+      search.dispatchEvent(new page.window.Event('input'));
+      const selected = page.document.querySelector('#org-tree .tree-row.active');
+      if (selected) selected.click();
+      assert.equal(page.document.querySelector('#user-tbody .org-cell')?.textContent.trim(), '星河科技集团', 'new user without organization must also belong to root');
+      page.assertHealthy();
+    } finally { page.dom.window.close(); }
+  });
+
   await test('manual refresh runs in the background and publishes only after completion', async () => {
     const page = loadPage({ syncDelay: 80 });
     try {
       const before = page.treeText();
       page.get('btn-refresh-org').click();
       assert(page.get('btn-refresh-org').disabled, 'refresh must disable while running');
-      assert(/同步|处理/.test(page.text('org-sync-message')), 'page should expose background progress');
+      assert(/同步|处理/.test(page.text('org-sync-title')), 'page should expose background progress');
       assert.equal(page.treeText(), before, 'running task must keep the published tree');
       page.document.querySelector('[data-page="kb-perm"]').click();
       await completed(page);
@@ -114,6 +144,7 @@ async function main() {
       assert.equal(page.text('user-tbody'), usersBefore, 'pending candidate must preserve published member relationships');
       page.openDetails();
       assert.equal(page.get('btn-org-sync-confirm').hidden, false);
+      assert.equal(page.get('btn-org-sync-cancel').hidden, false, 'pending task must offer actual cancellation');
       page.closeDetails();
       assert.equal(page.treeText(), before, 'closing details is not consent');
       assert.equal(page.get('org-sync-dot').hidden, false, 'pending dot must survive reading/closing details');
@@ -143,6 +174,9 @@ async function main() {
         await completed(page);
         page.openDetails();
         assert.equal(page.get('btn-org-sync-confirm').hidden, true);
+        assert.equal(page.get('btn-org-sync-cancel').hidden, true, 'finished task is view-only');
+        assert.equal(page.get('org-sync-status').hidden, true, 'finished task should not keep a permanent notification');
+        assert.equal(page.get('btn-org-sync-details').hidden, false, 'finished task should retain a compact details entry');
         if (scenario === 'failure' || scenario === 'unchanged') {
           assert.equal(page.treeText(), before, `${scenario} must not change the published tree`);
           assert.equal(page.text('user-tbody'), usersBefore, `${scenario} must preserve published member relationships`);
@@ -153,23 +187,55 @@ async function main() {
     });
   }
 
-  await test('running and pending tasks survive reopening the page', async () => {
-    let page = loadPage({ syncDelay: 160 });
+  await test('cancelling a pending update keeps published data and permits another synchronization', async () => {
+    const page = loadPage();
     try {
-      page.start('scheduled', 'pending');
-      const stored = page.storedTask();
-      assert(stored, 'task must persist outside the current DOM');
-      page.dom.window.close();
-      page = loadPage({ stored, syncDelay: 160 });
-      assert(page.get('btn-refresh-org').disabled, 'restored running task keeps refresh disabled');
+      const before = page.treeText();
+      const usersBefore = page.text('user-tbody');
+      page.start('manual', 'pending');
       await completed(page);
-      assert.equal(page.get('org-sync-status').dataset.status, 'pending');
-      const pending = page.storedTask();
-      page.dom.window.close();
-      page = loadPage({ stored: pending });
-      assert.equal(page.get('org-sync-status').dataset.status, 'pending', 'pending result should survive a reload');
       page.openDetails();
-      assert.equal(page.get('btn-org-sync-confirm').hidden, false);
+      page.get('btn-org-sync-cancel').click();
+      assert.equal(page.get('org-sync-status').dataset.status, 'cancelled', 'cancel must resolve the pending task');
+      assert.equal(page.treeText(), before, 'cancel must preserve published organizations');
+      assert.equal(page.text('user-tbody'), usersBefore, 'cancel must preserve published member relationships');
+      assert.equal(page.get('btn-refresh-org').disabled, false, 'cancel must release the refresh action');
+      assert.equal(page.get('org-sync-dot').hidden, true, 'cancel must clear the pending indicator');
+      page.openDetails();
+      assert.equal(page.get('btn-org-sync-confirm').hidden, true, 'cancelled candidate cannot be published later');
+      assert.equal(page.get('btn-org-sync-cancel').hidden, true);
+      page.closeDetails();
+      page.start('manual', 'success');
+      await completed(page);
+      assert.equal(page.get('org-sync-status').dataset.status, 'success', 'a fresh demo should run after cancellation');
+      page.assertHealthy();
+    } finally { page.dom.window.close(); }
+  });
+
+  await test('reloading always restores initial demo data and discards legacy persisted state', async () => {
+    let page = loadPage();
+    try {
+      const before = page.treeText();
+      const usersBefore = page.text('user-tbody');
+      page.start('manual', 'success');
+      await completed(page);
+      assert.notEqual(page.treeText(), before, 'demo must first change actual organization data');
+      page.document.querySelector('#user-tbody [data-view]').click();
+      page.get('uf-name').value = '刷新前的修改';
+      page.get('btn-save-user').click();
+      assert(page.text('user-tbody').includes('刷新前的修改'), 'demo user edit should be visible before reload');
+      assert(page.storedTask() === null, 'demo changes must not be persisted');
+      page.dom.window.close();
+      const legacy = JSON.stringify({ task: { status: 'pending', source: 'scheduled', startedAt: Date.now(), stats: { before: 21, after: 1 } }, tree: [{ id: 'c1', name: '旧演示数据', type: 'company' }], users: [], kbMembers: [], lastSuccessAt: Date.now() });
+      page = loadPage({ stored: legacy });
+      assert.equal(page.treeText(), before, 'reload must restore initial organization data');
+      assert.equal(page.text('user-tbody'), usersBefore, 'reload must restore initial users');
+      assert.equal(page.get('org-sync-status').dataset.status, '', 'reload must discard old task results');
+      assert.equal(page.get('org-sync-status').hidden, true, 'initial page has no task notification');
+      assert.equal(page.get('btn-org-sync-details').hidden, true, 'initial page has no stale task details');
+      assert.equal(page.get('org-sync-dot').hidden, true);
+      assert.equal(page.get('btn-refresh-org').disabled, false);
+      assert.equal(page.storedTask(), null, 'obsolete local state must be removed');
       page.assertHealthy();
     } finally { page.dom.window.close(); }
   });
@@ -178,14 +244,16 @@ async function main() {
     const page = loadPage({ syncDelay: 80 });
     try {
       page.start('manual', 'pending');
-      const running = page.storedTask();
       page.start('scheduled', 'success');
-      assert.equal(page.storedTask(), running, 'duplicate execution must reuse the running task');
+      page.openDetails();
+      assert.match(page.text('org-sync-detail-source'), /手动/, 'duplicate execution cannot replace the original trigger');
+      page.closeDetails();
       await completed(page);
-      const pending = page.storedTask();
+      assert.equal(page.get('org-sync-status').dataset.status, 'pending', 'running candidate must not be replaced');
       page.start('scheduled', 'success');
-      assert.equal(page.storedTask(), pending, 'new execution must not overwrite unconfirmed result');
-      assert.equal(page.get('org-sync-status').dataset.status, 'pending');
+      assert.equal(page.get('org-sync-status').dataset.status, 'pending', 'new execution must not overwrite an unconfirmed result');
+      page.openDetails();
+      assert.match(page.text('org-sync-detail-source'), /手动/);
       page.assertHealthy();
     } finally { page.dom.window.close(); }
   });
