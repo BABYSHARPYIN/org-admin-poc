@@ -329,6 +329,7 @@ async function main() {
         employeeLabel: document.querySelector('label[for="uf-employee-no"]').textContent.trim(),
         customerFieldPresent: !!document.getElementById("uf-customer-info"),
         employeeReadonly: document.getElementById("uf-employee-no").readOnly,
+        employeeDisabled: document.getElementById("uf-employee-no").disabled,
         ssoButtonPresent: !!document.getElementById("btn-sso-login"),
       };
     })()`);
@@ -347,7 +348,7 @@ async function main() {
     check(drawer.value === "普通用户", "尹悦 should open as 普通用户, got " + drawer.value);
     check(!drawer.forbidden, "rendered page should not contain 功能角色");
     check(drawer.employeeLabel === "SSO_ID", "员工工号 label should stay, got " + drawer.employeeLabel);
-    check(!drawer.customerFieldPresent && drawer.employeeReadonly && !drawer.ssoButtonPresent, "drawer should show readonly SSO_ID without employee info or SSO login");
+    check(!drawer.customerFieldPresent && drawer.employeeReadonly && drawer.employeeDisabled && !drawer.ssoButtonPresent, "drawer should show readonly SSO_ID without employee info or SSO login");
 
     const saved = await evaluate(`(() => {
       const select = document.getElementById("uf-account-type");
@@ -414,6 +415,7 @@ async function main() {
       const savedName = document.getElementById("uf-name").value;
       document.getElementById("btn-create-user").click();
       const createReadonly = field.readOnly;
+      const createDisabled = field.disabled;
       field.value = "XH10029";
       document.getElementById("uf-name").value = "新用户";
       document.getElementById("uf-account").value = "sync-only-user";
@@ -425,12 +427,12 @@ async function main() {
       const created = field.value;
       document.querySelector('[data-page="kb-perm"]').click();
       document.getElementById("btn-add-kb-auth").click();
-      return { before, saved, savedName, createReadonly, created,
+      return { before, saved, savedName, createReadonly, createDisabled, created,
         modal: document.getElementById("modal-kb-auth").textContent,
         hint: document.getElementById("kb-auth-department-hint").textContent };
     })()`);
     check(syncOnly.before === "XH10021" && syncOnly.saved === "XH10021" && syncOnly.savedName === "张伟更新", "platform save must preserve synced SSO_ID while updating other fields");
-    check(syncOnly.createReadonly && syncOnly.created === "", "new users must start with empty readonly SSO_ID");
+    check(syncOnly.createReadonly && syncOnly.createDisabled && syncOnly.created === "", "new users must start with empty readonly SSO_ID");
     check(syncOnly.modal.includes("成员或部门") && !syncOnly.modal.includes("成员或组织"), "authorization picker should use 成员或部门");
     check(syncOnly.hint.includes("部门下的所有用户") && syncOnly.hint.includes("所选角色"), "authorization picker should explain department permissions");
 
@@ -443,9 +445,10 @@ async function main() {
       window.__ssoAssertions["xinghe-sso|idp-zhangwei"].employeeNo = "XH10029";
       document.getElementById("btn-refresh-org").click();
       return { number: document.getElementById("uf-employee-no").value,
-        readonly: document.getElementById("uf-employee-no").readOnly };
+        readonly: document.getElementById("uf-employee-no").readOnly,
+        disabled: document.getElementById("uf-employee-no").disabled };
     })()`);
-    check(refreshed.number === "XH10029" && refreshed.readonly, "customer synchronization should still update the readonly SSO_ID");
+    check(refreshed.number === "XH10029" && refreshed.readonly && refreshed.disabled, "customer synchronization should still update the readonly SSO_ID");
 
   });
 

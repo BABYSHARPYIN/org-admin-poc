@@ -390,6 +390,12 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   cursor: default;
 }
 
+#uf-employee-no:disabled {
+  background: #f5f5f5;
+  color: #8c8c8c;
+  cursor: not-allowed;
+}
+
 .textarea { height: auto; min-height: 72px; padding: 8px 11px; resize: vertical; }
 
 .input.error, .select.error { border-color: var(--danger); }
@@ -1435,7 +1441,7 @@ table.data tr:hover td { background: #fafafa; }
           </div>
           <div class="form-row">
             <label for="uf-employee-no">SSO_ID</label>
-            <input class="input" id="uf-employee-no" readonly />
+            <input class="input" id="uf-employee-no" readonly disabled />
           </div>
         </form>
       </div>
