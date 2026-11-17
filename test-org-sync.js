@@ -109,6 +109,69 @@ async function main() {
     } finally { page.dom.window.close(); }
   });
 
+  await test('records use the synchronization summary heading', async () => {
+    const page = loadPage();
+    try {
+      page.openDetails();
+      assert.equal(page.text('org-sync-brief-title'), '同步摘要');
+      assert(!page.get('modal-org-sync').textContent.includes('AGENT 简报'));
+    } finally { page.dom.window.close(); }
+  });
+
+  for (const source of ['manual', 'scheduled']) {
+    for (const scenario of ['success', 'unchanged', 'pending', 'failure']) {
+      await test(`${source} ${scenario} callback updates records without popup or toast`, async () => {
+        const page = loadPage();
+        try {
+          page.start(source, scenario);
+          if (source === 'manual') assert.match(page.text('toast-wrap'), /后台处理|同步任务/, 'explicit start retains immediate feedback');
+          page.get('toast-wrap').replaceChildren();
+          await completed(page);
+          assert.equal(page.get('modal-org-sync').classList.contains('show'), false, 'callbacks never open records automatically');
+          assert.equal(page.text('toast-wrap'), '', 'async callback must not add a floating notification');
+          page.openDetails();
+          assert.equal(page.get('org-sync-detail-status').dataset.status, scenario, 'latest callback result must be available in records');
+          assert.equal(page.text('org-sync-detail-status'), { success: '成功', unchanged: '成功', pending: '待确认', failure: '失败' }[scenario]);
+          page.assertHealthy();
+        } finally { page.dom.window.close(); }
+      });
+    }
+  }
+
+  await test('failure indicator remains beside records after reading and clears on a new task', async () => {
+    const page = loadPage();
+    try {
+      assert.equal(page.get('org-sync-failure-icon').hidden, true);
+      page.start('scheduled', 'failure'); await completed(page);
+      assert.equal(page.get('org-sync-failure-icon').hidden, false);
+      page.openDetails(); page.closeDetails();
+      assert.equal(page.get('org-sync-failure-icon').hidden, false, 'reading failure does not resolve the failed result');
+      page.start('scheduled', 'success');
+      assert.equal(page.get('org-sync-failure-icon').hidden, true, 'new task supersedes the failure indicator');
+      await completed(page); page.openDetails();
+      assert.equal(page.get('org-sync-detail-status').dataset.status, 'success');
+      assert.equal(page.get('org-sync-failure-icon').hidden, true);
+      assert.match(page.text('org-sync-detail-brief'), /新业务部/);
+      page.assertHealthy();
+    } finally { page.dom.window.close(); }
+  });
+
+  await test('a failed approved publication stays open for inspection', async () => {
+    const page = loadPage();
+    try {
+      const before = page.treeText();
+      page.start('scheduled', 'pending'); await completed(page); page.openDetails();
+      page.window.__orgPublishDown = true;
+      page.get('btn-org-sync-confirm').click(); page.get('btn-confirm-ok').click();
+      await completed(page);
+      assert.equal(page.get('btn-refresh-org').dataset.status, 'failure');
+      assert.equal(page.get('modal-org-sync').classList.contains('show'), true, 'failed publication must retain its failure details');
+      assert.equal(page.treeText(), before);
+      assert.equal(page.get('org-sync-failure-icon').hidden, false);
+      page.assertHealthy();
+    } finally { page.dom.window.close(); }
+  });
+
   await test('comparison brief uses actual renamed and moved nodes from the two snapshots', async () => {
     const match = html.match(/const DEFAULT_ORG_TREE = ([\s\S]*?);\s+let orgTree/);
     assert(match, 'initial tree fixture must be available');
@@ -199,7 +262,7 @@ async function main() {
       assert.equal(page.get('btn-org-sync-details').hidden, false, 'active task has a separate progress entry');
       page.openDetails();
       assert.equal(page.get('btn-refresh-org').dataset.status, 'running', 'opening progress must not replace the running task');
-      assert.match(page.text('org-sync-detail-status'), /同步|处理/);
+      assert.equal(page.text('org-sync-detail-status'), '执行中');
       page.closeDetails();
       assert.equal(page.treeText(), before, 'running task must keep the published tree');
       page.document.querySelector('[data-page="kb-perm"]').click();
@@ -232,7 +295,8 @@ async function main() {
       assert.equal(page.get('btn-refresh-org').dataset.status, 'pending', 'pending fixture must not publish a small trailing-node removal');
       assert.equal(page.treeText(), before, 'pending task must preserve the latest published tree');
       assert.equal(page.text('user-tbody'), usersBefore, 'pending task must preserve current user memberships');
-      assert(page.get('modal-org-sync').classList.contains('show'), 'manual pending completion must automatically open its confirmation dialog');
+      assert.equal(page.get('modal-org-sync').classList.contains('show'), false, 'manual pending completion must not open a dialog automatically');
+      page.openDetails();
       assert.equal(page.get('btn-org-sync-confirm').hidden, false);
       assert.equal(page.get('btn-org-sync-cancel').hidden, false);
       assert.match(page.text('org-sync-detail-brief'), /确认|审核/);
@@ -242,13 +306,15 @@ async function main() {
       startDemo('manual', 'pending');
       await completed(page);
       assert.equal(page.get('btn-refresh-org').dataset.status, 'pending', 'pending demo must remain repeatable after cancellation');
-      assert(page.get('modal-org-sync').classList.contains('show'));
+      assert.equal(page.get('modal-org-sync').classList.contains('show'), false, 'repeated manual pending completion stays silent');
+      page.openDetails();
       page.get('btn-org-sync-confirm').click();
       assert(page.get('modal-confirm').classList.contains('show'));
       page.get('btn-confirm-ok').click();
       assert.equal(page.treeText(), before, 'confirmation must publish asynchronously');
       await waitUntil(() => page.get('btn-refresh-org').dataset.status === 'success', 'confirmed repeated demo should publish');
       assert.notEqual(page.treeText(), before);
+      assert.equal(page.get('modal-org-sync').classList.contains('show'), false, 'approved update closes records after publication succeeds');
       page.assertHealthy();
     } finally { page.dom.window.close(); }
   });
@@ -316,9 +382,11 @@ async function main() {
       assert.equal(page.treeText(), before);
       page.get('btn-org-sync-confirm').click();
       page.get('btn-confirm-ok').click();
+      assert.equal(page.text('org-sync-detail-status'), '执行中', 'publication shares the running state label');
       assert.equal(page.treeText(), before, 'confirmed task must finish async publication before replacing the tree');
       await waitUntil(() => page.get('btn-refresh-org').dataset.status === 'success', 'confirmed candidate should publish');
       assert.notEqual(page.treeText(), before, 'confirmed candidate should update actual tree content');
+      assert.equal(page.get('modal-org-sync').classList.contains('show'), false, 'successful approval automatically closes the records dialog');
       page.openDetails();
       assert.equal(page.get('btn-org-sync-confirm').hidden, true, 'already published result becomes view-only');
       assert.match(page.text('org-sync-detail-brief'), /星河数据子公司/, 'published task must retain its comparison report');
@@ -372,6 +440,7 @@ async function main() {
       assert.equal(page.get('org-sync-dot').hidden, true, 'cancel must clear the pending indicator');
       page.openDetails();
       assert.equal(page.get('btn-org-sync-confirm').hidden, true, 'cancelled candidate cannot be published later');
+      assert.equal(page.text('org-sync-detail-status'), '取消');
       assert.equal(page.get('btn-org-sync-cancel').hidden, true);
       assert.match(page.text('org-sync-detail-brief'), /星河数据子公司/, 'cancelled task retains the comparison of its discarded update');
       page.closeDetails();

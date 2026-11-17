@@ -1202,6 +1202,7 @@ table.data tr:hover td { background: #fafafa; }
   .org-action:disabled { color:#8c8c8c; background:#fafafa; opacity:1; }
   .org-action:focus-visible { outline:2px solid var(--link); outline-offset:2px; }
   #btn-org-sync-details { color:var(--link); position:relative; }
+  .org-sync-failure-icon { display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; color:#cf1322; flex:none; }
   #btn-org-sync-details[data-attention="true"]::after { content:""; width:5px; height:5px; background:#d48806; border-radius:50%; margin-left:2px; }
   .org-pane-note { margin:0 14px 8px; color:var(--text-tertiary); font-size:12px; line-height:1.5; }
   .user-pane { flex:1; min-width:0; display:flex; flex-direction:column; padding:16px 20px 12px; }
@@ -1254,7 +1255,7 @@ table.data tr:hover td { background: #fafafa; }
 .org-sync-detail-status { font-size:13px; font-weight:600; margin-bottom:18px; }
 .org-sync-detail-status[data-status="pending"] { color:#ad6800; }
 .org-sync-detail-status[data-status="failure"] { color:#cf1322; }
-.org-sync-detail-status[data-status="success"] { color:#237804; }
+.org-sync-detail-status[data-status="success"], .org-sync-detail-status[data-status="unchanged"] { color:#237804; }
 .org-sync-meta { margin:0; font-size:13px; }
 .org-sync-meta div { display:flex; gap:16px; margin:10px 0; }
 .org-sync-meta dt { color:var(--text-secondary); width:60px; flex:none; }
@@ -1336,7 +1337,7 @@ table.data tr:hover td { background: #fafafa; }
                 <h2>组织信息</h2>
                 <div class="btn-group">
                   <button class="btn org-action" type="button" id="btn-refresh-org"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2 6M20 4v7h-7"/></svg>刷新组织</button>
-                  <button class="btn org-action" type="button" id="btn-org-sync-details" aria-haspopup="dialog"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>同步记录</button>
+                  <button class="btn org-action" type="button" id="btn-org-sync-details" aria-haspopup="dialog"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>同步记录<span class="org-sync-failure-icon" id="org-sync-failure-icon" hidden role="img" aria-label="最近一次同步失败"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v1"/></svg></span></button>
                 </div>
               </div>
               <div class="panel-body">
@@ -1348,7 +1349,7 @@ table.data tr:hover td { background: #fafafa; }
                     <label>触发方式<select class="input" id="org-sync-demo-source"><option value="manual">手动刷新</option><option value="scheduled">定时任务</option></select></label>
                     <label>同步结果<select class="input" id="org-sync-demo-result"><option value="success">更新成功</option><option value="pending">需要管理员确认</option><option value="failure">同步失败</option><option value="unchanged">无变化</option></select></label>
                     <button class="btn btn-sm" id="org-sync-demo-start" type="button">开始演示</button>
-                  </div><p>模拟后台处理，可切换页面查看通知；刷新页面将重置全部演示数据。</p>
+                  </div><p>模拟后台处理，结果会更新至同步记录；刷新页面将重置全部演示数据。</p>
                 </details>
               </div>
             </aside>
@@ -1537,7 +1538,7 @@ table.data tr:hover td { background: #fafafa; }
       <div class="modal-body">
         <div class="org-sync-detail-status" id="org-sync-detail-status"></div>
         <dl class="org-sync-meta"><div><dt>触发源</dt><dd id="org-sync-detail-source"></dd></div><div><dt>开始时间</dt><dd id="org-sync-detail-start"></dd></div><div><dt>结束时间</dt><dd id="org-sync-detail-end"></dd></div></dl>
-        <section class="org-sync-brief" aria-labelledby="org-sync-brief-title"><h4 id="org-sync-brief-title">AGENT 简报</h4><p id="org-sync-detail-brief"></p></section>
+        <section class="org-sync-brief" aria-labelledby="org-sync-brief-title"><h4 id="org-sync-brief-title">同步摘要</h4><p id="org-sync-detail-brief"></p></section>
       </div>
       <div class="modal-footer"><button class="btn" type="button" id="btn-org-sync-close" data-close="modal-org-sync">关闭</button><button class="btn" type="button" id="btn-org-sync-cancel" hidden>取消更新</button><button class="btn btn-primary" type="button" id="btn-org-sync-confirm" hidden>确认更新</button></div>
     </div>
@@ -2409,20 +2410,12 @@ table.data tr:hover td { background: #fafafa; }
   const cloneSync = (value) => JSON.parse(JSON.stringify(value));
   const syncBusy = () => orgSyncTask && ["running", "publishing"].includes(orgSyncTask.status);
   const syncTime = (value) => value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "—";
-  const syncTitles = { running: "正在同步组织数据", pending: "组织同步待确认", publishing: "正在发布组织更新", success: "组织已更新", unchanged: "同步完成，组织数据无变化", failure: "组织同步失败", cancelled: "已取消组织更新" };
+  const syncTitles = { running: "执行中", pending: "待确认", publishing: "执行中", success: "成功", unchanged: "成功", failure: "失败", cancelled: "取消" };
 
   function openOrgSyncDetails() {
     if (orgSyncTask) orgSyncTask.unread = false;
     renderOrgSync();
     openModal("modal-org-sync");
-  }
-
-  function notifyOrgSync() {
-    if (!orgSyncTask) return;
-    const pending = orgSyncTask.status === "pending";
-    toast(pending ? "组织同步完成，变更较大，请确认是否更新。" : syncTitles[orgSyncTask.status],
-      orgSyncTask.status === "failure" ? "error" : "info",
-      { label: "同步记录", run: openOrgSyncDetails });
   }
 
   function renderOrgSync() {
@@ -2433,7 +2426,8 @@ table.data tr:hover td { background: #fafafa; }
     refresh.dataset.status = task ? task.status : "";
     document.getElementById("org-sync-demo-start").disabled = active;
     document.getElementById("org-sync-dot").hidden = !task || !(task.unread || task.status === "pending");
-    document.getElementById("btn-org-sync-details").dataset.attention = String(!!task && (task.unread || task.status === "pending"));
+    document.getElementById("btn-org-sync-details").dataset.attention = String(!!task && task.status !== "failure" && (task.unread || task.status === "pending"));
+    document.getElementById("org-sync-failure-icon").hidden = task?.status !== "failure";
     renderOrgSyncDetails();
   }
 
@@ -2581,9 +2575,6 @@ table.data tr:hover td { background: #fafafa; }
       orgSyncTask.unread = state.page !== "org-users";
     }
     renderOrgSync();
-    notifyOrgSync();
-    if (orgSyncTask.status === "pending" && orgSyncTask.source === "manual" && state.page === "org-users"
-      && !document.querySelector('.modal-mask.show:not(#modal-org-sync)')) openOrgSyncDetails();
   }
 
   function publishOrgSync() {
@@ -2591,7 +2582,7 @@ table.data tr:hover td { background: #fafafa; }
     if (orgSyncTask.baseline !== JSON.stringify(orgTree)) {
       orgSyncTask.status = "failure";
       orgSyncTask.error = "组织数据已变化，请重新刷新组织。";
-      renderOrgSync(); notifyOrgSync(); return;
+      renderOrgSync(); return;
     }
     orgSyncTask.status = "publishing";
     orgSyncTask.dueAt = Date.now() + Math.max(30, syncDelay() / 3);
@@ -2618,7 +2609,8 @@ table.data tr:hover td { background: #fafafa; }
     }
     orgSyncTask.completedAt = Date.now();
     orgSyncTask.unread = state.page !== "org-users";
-    renderOrgSync(); notifyOrgSync();
+    renderOrgSync();
+    if (orgSyncTask.status === "success" && orgSyncTask.closeOnSuccess) closeModal("modal-org-sync");
   }
 
   function scheduleOrgSync() {
@@ -2655,7 +2647,10 @@ table.data tr:hover td { background: #fafafa; }
     if (!orgSyncTask || orgSyncTask.status !== "pending") return;
     const taskId = orgSyncTask.id;
     confirmDialog("确认更新组织？", `本次组织节点将由 <strong>${orgSyncTask.stats.before}</strong> 个变为 <strong>${orgSyncTask.stats.after}</strong> 个。确认后将应用本次变更，并更新相关用户的组织归属与组织来源权限。`, () => {
-      if (orgSyncTask?.id === taskId && orgSyncTask.status === "pending") publishOrgSync();
+      if (orgSyncTask?.id === taskId && orgSyncTask.status === "pending") {
+        orgSyncTask.closeOnSuccess = true;
+        publishOrgSync();
+      }
     }, { okText: "确认更新", danger: false });
   });
   document.getElementById("org-sync-demo-start").addEventListener("click", () => {
