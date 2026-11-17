@@ -103,7 +103,7 @@ async function main() {
       assert.equal(page.text('org-sync-detail-source'), '—');
       assert.equal(page.get('btn-org-sync-confirm').hidden, true);
       assert.equal(page.get('btn-org-sync-cancel').hidden, true);
-      assert.equal(page.get('btn-org-sync-retry').hidden, true);
+      assert.equal(page.document.getElementById('btn-org-sync-retry'), null);
       assert.equal(page.get('btn-refresh-org').dataset.status, '', 'viewing empty progress cannot start a task');
       page.assertHealthy();
     } finally { page.dom.window.close(); }
@@ -132,21 +132,29 @@ async function main() {
     } finally { page.dom.window.close(); }
   });
 
-  await test('failed task offers a manual retry with a new task in the same progress dialog', async () => {
-    const page = loadPage({ syncDelay: 80 });
+  await test('failed task is view-only with no retry action', async () => {
+    const page = loadPage();
     try {
-      page.start('scheduled', 'failure');
-      await completed(page);
-      page.openDetails();
-      assert.equal(page.get('btn-org-sync-retry').hidden, false);
-      page.get('btn-org-sync-retry').click();
-      assert.equal(page.get('btn-refresh-org').dataset.status, 'running');
-      assert.equal(page.text('btn-refresh-org'), '刷新组织');
-      assert.equal(page.get('btn-refresh-org').disabled, true);
-      assert.equal(page.text('org-sync-detail-source'), 'admin');
-      assert.equal(page.get('btn-org-sync-retry').hidden, true);
-      await completed(page);
-      assert.notEqual(page.get('btn-refresh-org').dataset.status, 'failure');
+      page.start('scheduled', 'failure'); await completed(page); page.openDetails();
+      assert.equal(page.document.getElementById('btn-org-sync-retry'), null);
+      assert.equal(page.get('btn-org-sync-close').hidden, false);
+      assert.equal(page.get('btn-refresh-org').disabled, false);
+      page.assertHealthy();
+    } finally { page.dom.window.close(); }
+  });
+
+  await test('collapse all includes the root and expansion restores the whole tree', async () => {
+    const page = loadPage();
+    try {
+      const button = () => page.document.querySelector('#org-tree .tree-expand-all');
+      button().click();
+      assert.equal(button().getAttribute('aria-label'), '折叠全部');
+      button().click();
+      assert(page.document.querySelector('#org-tree > .tree-node > .tree-children').classList.contains('collapsed'));
+      button().click();
+      assert.equal(page.document.querySelectorAll('#org-tree .tree-children.collapsed').length, 0);
+      const pane = page.document.querySelector('.org-pane');
+      assert(pane.lastElementChild.classList.contains('org-sync-area'), 'demo controls belong at the bottom');
       page.assertHealthy();
     } finally { page.dom.window.close(); }
   });
@@ -205,6 +213,80 @@ async function main() {
     } finally { page.dom.window.close(); }
   });
 
+  await test('manual pending demo after a successful demo still requires explicit administrator confirmation', async () => {
+    const page = loadPage({ syncDelay: 80 });
+    const startDemo = (source, scenario) => {
+      page.get('org-sync-demo-source').value = source;
+      page.get('org-sync-demo-result').value = scenario;
+      page.get('org-sync-demo-start').click();
+    };
+    try {
+      startDemo('manual', 'success');
+      await completed(page);
+      assert.equal(page.get('btn-refresh-org').dataset.status, 'success');
+      const before = page.treeText();
+      const usersBefore = page.text('user-tbody');
+      assert(before.includes('新业务部'), 'reproduction must first add the small trailing department');
+      startDemo('manual', 'pending');
+      await completed(page);
+      assert.equal(page.get('btn-refresh-org').dataset.status, 'pending', 'pending fixture must not publish a small trailing-node removal');
+      assert.equal(page.treeText(), before, 'pending task must preserve the latest published tree');
+      assert.equal(page.text('user-tbody'), usersBefore, 'pending task must preserve current user memberships');
+      assert(page.get('modal-org-sync').classList.contains('show'), 'manual pending completion must automatically open its confirmation dialog');
+      assert.equal(page.get('btn-org-sync-confirm').hidden, false);
+      assert.equal(page.get('btn-org-sync-cancel').hidden, false);
+      assert.match(page.text('org-sync-detail-brief'), /确认|审核/);
+      page.get('btn-org-sync-cancel').click();
+      assert.equal(page.treeText(), before, 'cancelling keeps the latest successful tree');
+      assert.equal(page.text('user-tbody'), usersBefore);
+      startDemo('manual', 'pending');
+      await completed(page);
+      assert.equal(page.get('btn-refresh-org').dataset.status, 'pending', 'pending demo must remain repeatable after cancellation');
+      assert(page.get('modal-org-sync').classList.contains('show'));
+      page.get('btn-org-sync-confirm').click();
+      assert(page.get('modal-confirm').classList.contains('show'));
+      page.get('btn-confirm-ok').click();
+      assert.equal(page.treeText(), before, 'confirmation must publish asynchronously');
+      await waitUntil(() => page.get('btn-refresh-org').dataset.status === 'success', 'confirmed repeated demo should publish');
+      assert.notEqual(page.treeText(), before);
+      page.assertHealthy();
+    } finally { page.dom.window.close(); }
+  });
+
+  await test('scheduled pending demo after a successful demo remains protected without auto-opening a dialog', async () => {
+    const page = loadPage();
+    try {
+      page.start('manual', 'success');
+      await completed(page);
+      const before = page.treeText();
+      page.start('scheduled', 'pending');
+      await completed(page);
+      assert.equal(page.get('btn-refresh-org').dataset.status, 'pending');
+      assert.equal(page.treeText(), before);
+      assert.equal(page.get('modal-org-sync').classList.contains('show'), false, 'scheduled completion must stay available via notification and records');
+      page.openDetails();
+      assert.equal(page.get('btn-org-sync-confirm').hidden, false);
+      assert.equal(page.get('btn-org-sync-cancel').hidden, false);
+      page.assertHealthy();
+    } finally { page.dom.window.close(); }
+  });
+
+  await test('supplied JSON still follows its actual protection threshold rather than the pending fixture label', async () => {
+    const match = html.match(/const DEFAULT_ORG_TREE = ([\s\S]*?);\s+let orgTree/);
+    assert(match, 'initial tree fixture must be available');
+    const tree = new Function('return (' + match[1] + ')')();
+    tree[0].children.push({ id: 'external-small-addition', name: '外部新增部门', type: 'dept' });
+    const page = loadPage({ tree });
+    try {
+      page.start('manual', 'pending');
+      await completed(page);
+      assert.equal(page.get('btn-refresh-org').dataset.status, 'success', 'provided JSON with a minor change must retain the real threshold');
+      assert(page.treeText().includes('外部新增部门'));
+      assert.equal(page.get('modal-org-sync').classList.contains('show'), false, 'normal updates do not prompt for review');
+      page.assertHealthy();
+    } finally { page.dom.window.close(); }
+  });
+
   await test('a pending candidate preserves published data until explicit confirmation', async () => {
     const page = loadPage();
     try {
@@ -227,7 +309,13 @@ async function main() {
       assert.equal(page.get('org-sync-dot').hidden, false, 'pending dot must survive reading/closing details');
       page.openDetails();
       page.get('btn-org-sync-confirm').click();
-      assert.equal(page.get('modal-confirm').classList.contains('show'), false, 'confirmation must not add another heavy dialog');
+      assert.equal(page.get('modal-confirm').classList.contains('show'), true, 'publishing requires second confirmation');
+      assert.equal(page.get('btn-refresh-org').dataset.status, 'pending');
+      page.get('modal-confirm').querySelector('[data-close]').click();
+      assert.equal(page.get('btn-refresh-org').dataset.status, 'pending', 'cancelling second confirmation keeps pending state');
+      assert.equal(page.treeText(), before);
+      page.get('btn-org-sync-confirm').click();
+      page.get('btn-confirm-ok').click();
       assert.equal(page.treeText(), before, 'confirmed task must finish async publication before replacing the tree');
       await waitUntil(() => page.get('btn-refresh-org').dataset.status === 'success', 'confirmed candidate should publish');
       assert.notEqual(page.treeText(), before, 'confirmed candidate should update actual tree content');
@@ -251,7 +339,7 @@ async function main() {
         assert.equal(page.get('btn-org-sync-cancel').hidden, true, 'finished task has no pending approval action');
         const brief = page.text('org-sync-detail-brief');
         assert(brief.length > 10, 'terminal task needs a concise natural language brief');
-        assert.equal(page.get('btn-org-sync-retry').hidden, scenario !== 'failure', 'only a failed task offers retry');
+        assert.equal(page.document.getElementById('btn-org-sync-retry'), null, 'records do not offer a retry action');
         if (scenario === 'success') assert.match(brief, /新业务部/, 'success brief must use actual added node name');
         if (scenario === 'unchanged') assert.match(brief, /无变化|未发现/, 'unchanged brief must describe comparison outcome');
         if (scenario === 'failure') assert.match(brief, /失败|无法|未完成/, 'failure brief must explain why comparison did not finish');
@@ -383,6 +471,8 @@ async function main() {
       if (page.get('btn-refresh-org').dataset.status === 'pending') {
         page.openDetails();
         page.get('btn-org-sync-confirm').click();
+        assert(page.get('modal-confirm').classList.contains('show'));
+        page.get('btn-confirm-ok').click();
         await waitUntil(() => page.get('btn-refresh-org').dataset.status === 'success', 'candidate should finish publishing');
       }
       assert.notEqual(page.treeText(), before);
