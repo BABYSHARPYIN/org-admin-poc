@@ -1229,6 +1229,40 @@ table.data tr:hover td { background: #fafafa; }
   @media (max-width: 760px) { .content { padding:8px; overflow:auto; } .workspace-card { flex-direction:column; } .org-pane { width:auto; max-height:320px; border-right:none; border-bottom:1px solid #f0f0f0; } .table-footer .footer-batch { position:static; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
 
+
+[hidden] { display:none !important; }
+.org-sync-dot { width:7px; height:7px; flex:none; border-radius:50%; background:#d46b08; margin-left:auto; }
+.org-sync-area { padding:0 14px 10px; }
+.org-sync-last { color:var(--text-secondary); font-size:12px; line-height:1.6; margin-bottom:8px; }
+.org-sync-status { border:1px solid #d9e3f0; background:#f7faff; border-radius:6px; padding:10px 12px; font-size:12px; line-height:1.7; }
+.org-sync-status strong { display:block; font-weight:600; font-size:13px; }
+.org-sync-status p { margin:3px 0 6px; color:#595959; }
+.org-sync-status[data-status="pending"] { background:#fffbe6; border-color:#ffe58f; }
+.org-sync-status[data-status="failure"] { background:#fff2f0; border-color:#ffccc7; }
+.org-sync-status[data-status="success"] { background:#f6ffed; border-color:#d9f7be; }
+.org-sync-demo { margin-top:8px; font-size:12px; color:var(--text-secondary); }
+.org-sync-demo summary { cursor:pointer; width:fit-content; }
+.org-sync-demo-controls { display:grid; gap:8px; margin-top:10px; }
+.org-sync-demo-controls label { display:grid; gap:4px; }
+.org-sync-demo-controls .input { font-size:12px; }
+.org-sync-demo p { margin:8px 0 0; line-height:1.6; }
+.org-sync-modal { width:520px; max-width:calc(100vw - 32px); }
+.org-sync-detail-status { font-weight:600; margin-bottom:18px; }
+.org-sync-detail-status[data-status="pending"] { color:#ad6800; }
+.org-sync-detail-status[data-status="failure"] { color:#cf1322; }
+.org-sync-detail-status[data-status="success"] { color:#237804; }
+.org-sync-meta { margin:0; font-size:13px; }
+.org-sync-meta div { display:flex; gap:16px; margin:10px 0; }
+.org-sync-meta dt { color:var(--text-secondary); width:60px; flex:none; }
+.org-sync-meta dd { margin:0; }
+.org-sync-summary { margin:20px 0; border-top:1px solid var(--border); padding-top:18px; }
+.org-sync-count-label { font-size:12px; color:var(--text-secondary); }
+#org-sync-detail-count { display:block; font-size:28px; margin:5px 0; }
+#org-sync-detail-diff { color:var(--text-secondary); font-size:13px; margin:0; }
+.org-sync-impact { margin-top:18px; font-size:13px; line-height:1.7; }
+.org-sync-impact p { margin:4px 0 0; color:var(--text-secondary); }
+.org-sync-note { margin:16px 0 0; padding:12px; background:#fafafa; border-radius:4px; font-size:13px; line-height:1.7; color:#595959; }
+
 </style>
 </head>
 <body>
@@ -1265,7 +1299,7 @@ table.data tr:hover td { background: #fafafa; }
         <div class="nav-section">超管设置</div>
         <button class="nav-item active" data-page="org-users" type="button">
           <span class="icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3"/><path d="M5 19c1.2-3 3.6-4.5 7-4.5S17.8 16 19 19"/></svg></span>
-          用户管理
+          用户管理<span class="org-sync-dot" id="org-sync-dot" hidden aria-label="组织同步有新结果或待确认事项"></span>
         </button>
         <button class="nav-item" type="button" data-placeholder="系统设置">
           <span class="icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/></svg></span>
@@ -1303,6 +1337,20 @@ table.data tr:hover td { background: #fafafa; }
                   <button class="btn btn-sm" type="button" id="btn-refresh-org">刷新组织</button>
                   <button class="btn btn-sm" type="button" id="btn-expand-all" title="展开或折叠">展开</button>
                 </div>
+              </div>
+              <div class="org-sync-area">
+                <div class="org-sync-last" id="org-sync-last">尚无成功更新记录</div>
+                <div class="org-sync-status" id="org-sync-status" hidden role="status" aria-live="polite">
+                  <strong id="org-sync-title"></strong><p id="org-sync-message"></p>
+                  <button class="btn-link" type="button" id="btn-org-sync-details">查看详情</button>
+                </div>
+                <details class="org-sync-demo"><summary>演示场景</summary>
+                  <div class="org-sync-demo-controls">
+                    <label>触发方式<select class="input" id="org-sync-demo-source"><option value="manual">手动刷新</option><option value="scheduled">定时任务</option></select></label>
+                    <label>同步结果<select class="input" id="org-sync-demo-result"><option value="success">更新成功</option><option value="pending">需要管理员确认</option><option value="failure">同步失败</option><option value="unchanged">无变化</option></select></label>
+                    <button class="btn btn-sm" id="org-sync-demo-start" type="button">开始演示</button>
+                  </div><p>模拟后台处理，可切换页面或刷新页面查看结果。</p>
+                </details>
               </div>
               <div class="panel-body">
                 <div class="tree" id="org-tree"></div>
@@ -1484,6 +1532,21 @@ table.data tr:hover td { background: #fafafa; }
         <button class="btn" type="button" data-close="modal-kb-auth">取消</button>
         <button class="btn btn-primary" type="button" id="btn-confirm-kb-auth">确认授权</button>
       </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="modal-org-sync">
+    <div class="modal org-sync-modal" role="dialog" aria-modal="true" aria-labelledby="org-sync-modal-title">
+      <div class="modal-header"><h3 id="org-sync-modal-title">组织同步详情</h3><button class="btn-icon" type="button" data-close="modal-org-sync" aria-label="关闭">✕</button></div>
+      <div class="modal-body">
+        <div class="org-sync-detail-status" id="org-sync-detail-status"></div>
+        <dl class="org-sync-meta"><div><dt>触发方式</dt><dd id="org-sync-detail-source"></dd></div><div><dt>开始时间</dt><dd id="org-sync-detail-start"></dd></div><div><dt>完成时间</dt><dd id="org-sync-detail-end"></dd></div></dl>
+        <div class="org-sync-summary" id="org-sync-detail-summary" hidden>
+          <div class="org-sync-count-label">组织节点数量</div><strong id="org-sync-detail-count"></strong><p id="org-sync-detail-diff"></p>
+          <div class="org-sync-impact"><strong>影响摘要</strong><p id="org-sync-detail-users"></p><p id="org-sync-detail-permission"></p></div>
+        </div><p class="org-sync-note" id="org-sync-detail-note"></p>
+      </div>
+      <div class="modal-footer"><button class="btn" type="button" data-close="modal-org-sync">关闭</button><button class="btn btn-primary" type="button" id="btn-org-sync-confirm" hidden>确认更新</button></div>
     </div>
   </div>
 
@@ -2318,21 +2381,252 @@ table.data tr:hover td { background: #fafafa; }
     renderOrgTree(document.getElementById("org-tree"));
   }
 
-  document.getElementById("btn-refresh-org").addEventListener("click", () => {
-    if (window.__orgPublishDown) {
-      toast("组织发布失败，未更新成员", "error");
-      return;
+  // Background synchronization is simulated locally for this frontend-only POC.
+  const SYNC_STORAGE_KEY = "org-admin-sync-poc-v1";
+  let orgSyncTask = null;
+  let orgSyncTimer = null;
+  const syncDelay = () => Number.isFinite(window.__orgSyncDelayMs) ? Math.max(0, window.__orgSyncDelayMs) : 3200;
+  const cloneSync = (value) => JSON.parse(JSON.stringify(value));
+  const syncBusy = () => orgSyncTask && ["running", "publishing"].includes(orgSyncTask.status);
+  const syncTime = (value) => value ? new Date(value).toLocaleString("zh-CN", { hour12: false }) : "—";
+  const syncTitles = { running: "正在同步组织数据", pending: "组织同步待确认", publishing: "正在发布组织更新", success: "组织已更新", unchanged: "同步完成，组织数据无变化", failure: "组织同步失败" };
+
+  function saveOrgSync() {
+    try {
+      localStorage.setItem(SYNC_STORAGE_KEY, JSON.stringify({ task: orgSyncTask, tree: orgTree, users, kbMembers, kbCandidateUsers, lastSuccessAt: window.__orgLastSuccessAt || null }));
+    } catch (error) { /* The current page continues to work when browser storage is unavailable. */ }
+  }
+
+  function renderOrgSync() {
+    const task = orgSyncTask;
+    const banner = document.getElementById("org-sync-status");
+    banner.hidden = !task;
+    banner.dataset.status = task ? task.status : "";
+    const refresh = document.getElementById("btn-refresh-org");
+    refresh.disabled = !!(syncBusy() || (task && task.status === "pending"));
+    refresh.textContent = syncBusy() ? "同步中" : "刷新组织";
+    refresh.setAttribute("aria-busy", String(!!syncBusy()));
+    document.getElementById("org-sync-demo-start").disabled = refresh.disabled;
+    document.getElementById("org-sync-dot").hidden = !task || !(task.unread || task.status === "pending");
+    document.getElementById("org-sync-last").textContent = window.__orgLastSuccessAt ? "上次成功更新：" + syncTime(window.__orgLastSuccessAt) : "尚无成功更新记录";
+    if (!task) return;
+    let message = "正在后台同步组织数据，你可以离开此页面。";
+    if (task.status === "pending") message = `节点数量减少 ${task.stats.dropPercent}%，已触发误删保护，当前数据尚未更新。`;
+    if (task.status === "publishing") message = "正在更新组织树及关联用户信息，请稍候。";
+    if (task.status === "success") message = `新增 ${task.stats.added} 个节点，调整 ${task.stats.updated} 个节点，删除 ${task.stats.removed} 个节点。`;
+    if (task.status === "failure") message = task.error + " 原有组织数据保持不变。";
+    if (task.status === "unchanged") message = "组织结构及关联用户信息均无变化。";
+    document.getElementById("org-sync-title").textContent = syncTitles[task.status];
+    document.getElementById("org-sync-message").textContent = message;
+    const detailsButton = document.getElementById("btn-org-sync-details");
+    detailsButton.textContent = task.status === "pending" ? "查看并确认" : (syncBusy() ? "查看进度" : "查看详情");
+    renderOrgSyncDetails();
+  }
+
+  function renderOrgSyncDetails() {
+    const task = orgSyncTask;
+    if (!task) return;
+    document.getElementById("org-sync-detail-status").textContent = syncTitles[task.status];
+    document.getElementById("org-sync-detail-status").dataset.status = task.status;
+    document.getElementById("org-sync-detail-source").textContent = task.source === "scheduled" ? "定时任务" : "手动刷新";
+    document.getElementById("org-sync-detail-start").textContent = syncTime(task.startedAt);
+    document.getElementById("org-sync-detail-end").textContent = syncTime(task.completedAt);
+    const stats = task.stats;
+    document.getElementById("org-sync-detail-summary").hidden = !stats;
+    if (stats) {
+      document.getElementById("org-sync-detail-count").textContent = `${stats.before} → ${stats.after}`;
+      document.getElementById("org-sync-detail-diff").textContent = `新增 ${stats.added} · 调整 ${stats.updated} · 删除 ${stats.removed}`;
+      document.getElementById("org-sync-detail-users").textContent = `${stats.affectedUsers} 名用户的组织归属或所属路径发生变化`;
+      document.getElementById("org-sync-detail-permission").textContent = stats.affectedUsers ? "组织来源权限随归属变化重新计算；用户直授权限与账号类型保持不变。" : "组织归属未变化；用户直授权限与账号类型保持不变。";
     }
-    orgTree = publishedTree();
-    if (state.selectedOrgId && !findNode(state.selectedOrgId)) state.selectedOrgId = null;
-    const summary = syncLinkedUsers("refresh");
-    rebuildPendingMemberships();
-    if (summary.failed) toast("工号查询失败，未更新员工工号", "error");
-    else toast("已从客户系统刷新组织");
-    renderMainTree();
-    renderUsers();
-    reflectOpenDrawer();
-    if (state.page === "kb-perm") renderKbPerm();
+    let note = "正在拉取客户组织及关联用户信息，完成后将在此页面保留结果。";
+    if (task.status === "pending") note = `组织节点由 ${stats.before} 个减少至 ${stats.after} 个，减少 ${stats.dropPercent}%，已触发 30% 误删保护。确认前继续使用原有组织数据。`;
+    if (task.status === "failure") note = task.error + " 本次结果未发布。";
+    if (task.status === "success") note = "本次组织更新已生效。";
+    if (task.status === "unchanged") note = "本次同步未发现变化，继续使用原有组织数据。";
+    if (task.status === "publishing") note = "正在应用本次变更，完成后将显示更新结果。";
+    document.getElementById("org-sync-detail-note").textContent = note;
+    document.getElementById("btn-org-sync-confirm").hidden = task.status !== "pending";
+  }
+
+  function orgSyncNodeMap(tree) {
+    const map = new Map();
+    const seen = new Set();
+    function visit(nodes, parentId) {
+      if (!Array.isArray(nodes)) throw new Error("组织数据不完整。");
+      for (const node of nodes) {
+        if (!node || !node.id || !node.name) throw new Error("组织节点缺少必要信息。");
+        if (seen.has(node.id)) throw new Error("组织数据存在重复节点或环状结构。");
+        seen.add(node.id);
+        if (node.parentCustomerOrgId && node.parentCustomerOrgId !== parentId) throw new Error("组织数据存在孤儿节点或父子关系异常。");
+        map.set(node.id, { name: node.name, parentId, type: node.type || "" });
+        if (node.children) visit(node.children, node.id);
+      }
+    }
+    visit(tree, null);
+    if (!map.size) throw new Error("客户接口返回空组织数据。");
+    return map;
+  }
+
+  function buildOrgSyncCandidate(task) {
+    if (task.scenario === "failure" || window.__orgPublishDown) throw new Error("客户组织数据拉取失败，请稍后重新刷新。");
+    let tree = publishedTree();
+    if (!window.__publishedOrgTree) {
+      tree = cloneSync(orgTree);
+      if (task.scenario === "success") {
+        const newId = "sync-dept-" + task.startedAt;
+        tree[0].children = tree[0].children || [];
+        tree[0].children.push({ id: newId, name: "新业务部", type: "dept" });
+      } else if (task.scenario === "pending") {
+        if (tree[0].children && tree[0].children.length > 1) tree[0].children.pop();
+        else tree = [{ ...tree[0], children: [] }];
+      }
+    }
+    const previous = orgSyncNodeMap(orgTree);
+    const next = orgSyncNodeMap(tree);
+    const stats = { before: previous.size, after: next.size, added: 0, updated: 0, removed: 0, affectedUsers: 0, dropPercent: 0 };
+    next.forEach((node, id) => {
+      if (!previous.has(id)) stats.added += 1;
+      else if (JSON.stringify(previous.get(id)) !== JSON.stringify(node)) stats.updated += 1;
+    });
+    previous.forEach((_node, id) => { if (!next.has(id)) stats.removed += 1; });
+    stats.dropPercent = Math.round(Math.max(0, (stats.before - stats.after) / stats.before) * 1000) / 10;
+    const originalTree = orgTree;
+    const originalUsers = users;
+    let candidateUsers;
+    try {
+      orgTree = tree;
+      users = cloneSync(originalUsers);
+      const summary = syncLinkedUsers("refresh");
+      if (summary.failed) throw new Error(`有 ${summary.failed} 名用户的信息查询失败，请稍后重新刷新。`);
+      rebuildPendingMemberships();
+      candidateUsers = cloneSync(users);
+    } finally {
+      orgTree = originalTree;
+      users = originalUsers;
+    }
+    const keys = ["employeeNo", "customerInfo", "orgId", "pendingOrgId"];
+    let userChanges = 0;
+    candidateUsers.forEach((user) => {
+      const before = originalUsers.find((item) => item.id === user.id);
+      const chain = (id, map) => {
+        const result = [];
+        while (id && map.has(id)) { result.push(id); id = map.get(id).parentId; }
+        return result.join("/");
+      };
+      if (before.orgId !== user.orgId || before.pendingOrgId !== user.pendingOrgId || chain(before.orgId, previous) !== chain(user.orgId, next)) stats.affectedUsers += 1;
+      if (keys.some((key) => (before[key] || null) !== (user[key] || null))) userChanges += 1;
+    });
+    return { tree, candidateUsers, stats, baseline: JSON.stringify(orgTree), changed: !!(stats.added || stats.updated || stats.removed || userChanges), protect: (stats.before - stats.after) / stats.before >= 0.3 };
+  }
+
+  function finishOrgSync() {
+    if (!orgSyncTask || orgSyncTask.status !== "running") return;
+    try {
+      const result = buildOrgSyncCandidate(orgSyncTask);
+      Object.assign(orgSyncTask, result, { completedAt: Date.now(), unread: state.page !== "org-users" });
+      if (result.protect) orgSyncTask.status = "pending";
+      else if (!result.changed) orgSyncTask.status = "unchanged";
+      else { publishOrgSync(); return; }
+    } catch (error) {
+      orgSyncTask.status = "failure";
+      orgSyncTask.error = error.message || "同步失败，请稍后重试。";
+      orgSyncTask.completedAt = Date.now();
+      orgSyncTask.unread = state.page !== "org-users";
+    }
+    saveOrgSync();
+    renderOrgSync();
+  }
+
+  function publishOrgSync() {
+    if (!orgSyncTask || !["running", "pending"].includes(orgSyncTask.status)) return;
+    if (orgSyncTask.baseline !== JSON.stringify(orgTree)) {
+      orgSyncTask.status = "failure";
+      orgSyncTask.error = "组织数据已变化，请重新刷新组织。";
+      saveOrgSync(); renderOrgSync(); return;
+    }
+    orgSyncTask.status = "publishing";
+    orgSyncTask.dueAt = Date.now() + Math.max(30, syncDelay() / 3);
+    saveOrgSync(); renderOrgSync(); scheduleOrgSync();
+  }
+
+  function completeOrgSyncPublish() {
+    if (!orgSyncTask || orgSyncTask.status !== "publishing") return;
+    if (window.__orgPublishDown) {
+      orgSyncTask.status = "failure";
+      orgSyncTask.error = "组织更新发布失败，请重新刷新。";
+    } else {
+      orgTree = cloneSync(orgSyncTask.tree);
+      users.forEach((user) => {
+        const candidate = orgSyncTask.candidateUsers.find((item) => item.id === user.id);
+        if (!candidate) return;
+        ["employeeNo", "customerInfo", "orgId", "pendingOrgId"].forEach((key) => { user[key] = candidate[key]; });
+      });
+      if (state.selectedOrgId && !findNode(state.selectedOrgId)) state.selectedOrgId = null;
+      orgSyncTask.status = "success";
+      window.__orgLastSuccessAt = Date.now();
+      renderMainTree(); renderUsers(); reflectOpenDrawer();
+      if (state.page === "kb-perm") renderKbPerm();
+    }
+    orgSyncTask.completedAt = Date.now();
+    orgSyncTask.unread = state.page !== "org-users";
+    saveOrgSync(); renderOrgSync();
+  }
+
+  function scheduleOrgSync() {
+    clearTimeout(orgSyncTimer);
+    if (!syncBusy()) return;
+    orgSyncTimer = setTimeout(() => {
+      if (orgSyncTask.status === "running") finishOrgSync();
+      else completeOrgSyncPublish();
+    }, Math.max(0, orgSyncTask.dueAt - Date.now()));
+  }
+
+  function startOrgSync(source = "manual", scenario = "unchanged") {
+    if (syncBusy() || (orgSyncTask && orgSyncTask.status === "pending")) return orgSyncTask;
+    orgSyncTask = { id: "org-sync-" + Date.now(), source, scenario, status: "running", startedAt: Date.now(), dueAt: Date.now() + syncDelay(), unread: false };
+    saveOrgSync(); renderOrgSync(); scheduleOrgSync();
+    if (source === "manual") toast("已创建组织同步任务，系统将在后台处理。");
+    return orgSyncTask;
+  }
+
+  document.getElementById("btn-refresh-org").addEventListener("click", () => startOrgSync());
+  document.getElementById("btn-org-sync-details").addEventListener("click", () => {
+    if (!orgSyncTask) return;
+    orgSyncTask.unread = false;
+    saveOrgSync(); renderOrgSync(); openModal("modal-org-sync");
+  });
+  document.getElementById("btn-org-sync-confirm").addEventListener("click", () => {
+    if (!orgSyncTask || orgSyncTask.status !== "pending") return;
+    const id = orgSyncTask.id;
+    confirmDialog("确认更新组织？", `组织节点将由 <strong>${orgSyncTask.stats.before}</strong> 个减少至 <strong>${orgSyncTask.stats.after}</strong> 个，减少 <strong>${orgSyncTask.stats.dropPercent}%</strong>。<br><br>更新后将调整相关用户的组织归属及组织来源权限；用户直授权限与账号类型保持不变。`, () => {
+      if (orgSyncTask && orgSyncTask.id === id && orgSyncTask.status === "pending") publishOrgSync();
+    }, { okText: "确认更新" });
+  });
+  document.getElementById("org-sync-demo-start").addEventListener("click", () => {
+    startOrgSync(document.getElementById("org-sync-demo-source").value, document.getElementById("org-sync-demo-result").value);
+  });
+  document.querySelector('[data-page="org-users"]').addEventListener("click", () => {
+    if (!orgSyncTask) return;
+    orgSyncTask.unread = false; saveOrgSync(); renderOrgSync();
+  });
+  window.__orgSyncDemo = { start: startOrgSync };
+  function restoreOrgSync() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SYNC_STORAGE_KEY));
+      if (saved && saved.task && saved.tree && saved.users) {
+        orgSyncNodeMap(saved.tree);
+        orgSyncTask = saved.task; orgTree = saved.tree; users = saved.users;
+        window.__orgLastSuccessAt = saved.lastSuccessAt;
+        if (saved.kbMembers) kbMembers = saved.kbMembers;
+        kbCandidateUsers.splice(0, kbCandidateUsers.length, ...(saved.kbCandidateUsers || [{ account: "haha", name: "hh", email: "haha@example.com" }].concat(users.map((user) => ({ account: user.account, name: user.name, email: user.email || "" })))));
+      }
+    } catch (error) { /* Ignore unavailable or obsolete local demo state. */ }
+    renderOrgSync(); scheduleOrgSync();
+  }
+  window.addEventListener("storage", (event) => {
+    if (event.key !== SYNC_STORAGE_KEY) return;
+    restoreOrgSync(); renderMainTree(); renderUsers(); reflectOpenDrawer();
   });
 
   document.getElementById("btn-expand-all").addEventListener("click", () => {
@@ -2473,6 +2767,9 @@ table.data tr:hover td { background: #fafafa; }
       users = users.filter((item) => item.id !== user.id);
       kbMembers = kbMembers.filter((member) => member.account.toLowerCase() !== user.account.toLowerCase());
       closeModal("modal-user");
+      const candidateIndex = kbCandidateUsers.findIndex((item) => item.account === user.account);
+      if (candidateIndex >= 0) kbCandidateUsers.splice(candidateIndex, 1);
+      if (orgSyncTask) saveOrgSync();
       toast("已删除用户 " + user.name);
       renderUsers();
       renderMainTree();
@@ -2545,6 +2842,7 @@ table.data tr:hover td { background: #fafafa; }
   }
 
   function finishSave(message, type) {
+    if (orgSyncTask) saveOrgSync();
     closeModal("modal-user");
     toast(message, type || "success");
     renderUsers();
@@ -2793,6 +3091,7 @@ table.data tr:hover td { background: #fafafa; }
   syncLinkedUsers("refresh");
 
   // ——— Init ———
+  restoreOrgSync();
   renderMainTree();
   renderUsers();
   renderKbPerm();

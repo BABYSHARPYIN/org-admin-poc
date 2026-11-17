@@ -73,7 +73,9 @@ async function withPage(run) {
     const dom = new JSDOM(html, {
       runScripts: "dangerously",
       pretendToBeVisual: true,
+      url: "https://poc.test/",
       beforeParse(window) {
+        window.__orgSyncDelayMs = 20;
         Object.defineProperty(window.HTMLElement.prototype, "innerText", {
           get() { return this.textContent; },
         });
@@ -436,7 +438,7 @@ async function main() {
     check(syncOnly.modal.includes("成员或部门") && !syncOnly.modal.includes("成员或组织"), "authorization picker should use 成员或部门");
     check(syncOnly.hint.includes("部门下的所有用户") && syncOnly.hint.includes("所选角色"), "authorization picker should explain department permissions");
 
-    const refreshed = await evaluate(`(() => {
+    const refreshed = await evaluate(`(async () => {
       document.querySelector('[data-page="org-users"]').click();
       const search = document.getElementById("user-search");
       search.value = "zhangwei";
@@ -444,6 +446,7 @@ async function main() {
       document.querySelector("#user-tbody [data-view]").click();
       window.__ssoAssertions["xinghe-sso|idp-zhangwei"].employeeNo = "XH10029";
       document.getElementById("btn-refresh-org").click();
+      await new Promise((resolve) => setTimeout(resolve, 100));
       return { number: document.getElementById("uf-employee-no").value,
         readonly: document.getElementById("uf-employee-no").readOnly,
         disabled: document.getElementById("uf-employee-no").disabled };
