@@ -37,11 +37,10 @@ function loadPage({ stored, syncDelay = 25, tree } = {}) {
   const text = (id) => get(id).textContent.trim();
   const treeText = () => text('org-tree');
   const openDetails = () => {
-    const active = ['running', 'publishing', 'pending'].includes(get('btn-refresh-org').dataset.status);
-    const entry = get(active ? 'btn-refresh-org' : 'btn-org-sync-details');
+    const entry = get('btn-org-sync-details');
     assert.equal(entry.hidden, false, 'latest task progress entry must be visible');
     assert.equal(entry.disabled, false, 'progress entry must remain clickable');
-    assert.equal(entry.textContent.trim(), '同步进度');
+    assert.equal(entry.textContent.trim(), '同步记录');
     entry.click();
     assert(get('modal-org-sync').classList.contains('show'), 'details dialog should open');
   };
@@ -83,7 +82,7 @@ async function main() {
   const baseline = loadPage();
   try {
     assert.equal(typeof baseline.window.__orgSyncDemo?.start, 'function', 'async organization task entry must exist');
-    assert.equal(baseline.text('org-sync-modal-title'), '同步进度', 'progress modal must use a single consistent title');
+    assert.equal(baseline.text('org-sync-modal-title'), '同步记录', 'progress modal must use a single consistent title');
     for (const id of ['org-sync-row', 'org-sync-status', 'org-sync-detail-summary', 'org-sync-detail-count', 'org-sync-detail-users', 'org-sync-detail-permission', 'org-sync-detail-note']) {
       assert.equal(baseline.document.getElementById(id), null, `${id} must be removed from the compact interface`);
     }
@@ -91,6 +90,66 @@ async function main() {
   } finally {
     baseline.dom.window.close();
   }
+
+
+  await test('independent progress entry exposes an empty task state before any sync', async () => {
+    const page = loadPage();
+    try {
+      assert.equal(page.text('btn-refresh-org'), '刷新组织');
+      assert.equal(page.text('btn-org-sync-details'), '同步记录');
+      assert.equal(page.get('btn-refresh-org').disabled, false);
+      page.openDetails();
+      assert.match(page.text('org-sync-detail-status'), /暂无同步任务/);
+      assert.equal(page.text('org-sync-detail-source'), '—');
+      assert.equal(page.get('btn-org-sync-confirm').hidden, true);
+      assert.equal(page.get('btn-org-sync-cancel').hidden, true);
+      assert.equal(page.get('btn-org-sync-retry').hidden, true);
+      assert.equal(page.get('btn-refresh-org').dataset.status, '', 'viewing empty progress cannot start a task');
+      page.assertHealthy();
+    } finally { page.dom.window.close(); }
+  });
+
+  await test('comparison brief uses actual renamed and moved nodes from the two snapshots', async () => {
+    const match = html.match(/const DEFAULT_ORG_TREE = ([\s\S]*?);\s+let orgTree/);
+    assert(match, 'initial tree fixture must be available');
+    const tree = new Function('return (' + match[1] + ')')();
+    const productionCompany = tree[0].children[0];
+    const research = productionCompany.children.find((node) => node.id === 'd2');
+    research.name = '研发中心';
+    const moved = research.children.splice(research.children.findIndex((node) => node.id === 'p8'), 1)[0];
+    tree[0].children[1].children[0].children.push(moved);
+    const page = loadPage({ tree });
+    try {
+      page.start('manual', 'success');
+      await completed(page);
+      page.openDetails();
+      assert.equal(page.get('btn-refresh-org').dataset.status, 'success');
+      const brief = page.text('org-sync-detail-brief');
+      assert.match(brief, /研发中心/, 'renamed node must appear in the report');
+      assert.match(brief, /产品经理/, 'moved node must appear in the report');
+      assert.match(brief, /销售部/, 'move destination must appear in the report');
+      page.assertHealthy();
+    } finally { page.dom.window.close(); }
+  });
+
+  await test('failed task offers a manual retry with a new task in the same progress dialog', async () => {
+    const page = loadPage({ syncDelay: 80 });
+    try {
+      page.start('scheduled', 'failure');
+      await completed(page);
+      page.openDetails();
+      assert.equal(page.get('btn-org-sync-retry').hidden, false);
+      page.get('btn-org-sync-retry').click();
+      assert.equal(page.get('btn-refresh-org').dataset.status, 'running');
+      assert.equal(page.text('btn-refresh-org'), '刷新组织');
+      assert.equal(page.get('btn-refresh-org').disabled, true);
+      assert.equal(page.text('org-sync-detail-source'), 'admin');
+      assert.equal(page.get('btn-org-sync-retry').hidden, true);
+      await completed(page);
+      assert.notEqual(page.get('btn-refresh-org').dataset.status, 'failure');
+      page.assertHealthy();
+    } finally { page.dom.window.close(); }
+  });
 
   await test('users without organization belong to the root in display and organization filters', async () => {
     const page = loadPage();
@@ -127,9 +186,9 @@ async function main() {
     try {
       const before = page.treeText();
       page.get('btn-refresh-org').click();
-      assert.equal(page.get('btn-refresh-org').disabled, false, 'running task must keep progress entry usable');
-      assert.equal(page.text('btn-refresh-org'), '同步进度', 'refresh button becomes progress entry while active');
-      assert.equal(page.get('btn-org-sync-details').hidden, true, 'active task must have only one progress entry');
+      assert.equal(page.get('btn-refresh-org').disabled, true, 'running task disables starting another refresh');
+      assert.equal(page.text('btn-refresh-org'), '刷新组织', 'refresh label must remain fixed');
+      assert.equal(page.get('btn-org-sync-details').hidden, false, 'active task has a separate progress entry');
       page.openDetails();
       assert.equal(page.get('btn-refresh-org').dataset.status, 'running', 'opening progress must not replace the running task');
       assert.match(page.text('org-sync-detail-status'), /同步|处理/);
@@ -159,6 +218,10 @@ async function main() {
       page.openDetails();
       assert.equal(page.get('btn-org-sync-confirm').hidden, false);
       assert.equal(page.get('btn-org-sync-cancel').hidden, false, 'pending task must offer actual cancellation');
+      const pendingBrief = page.text('org-sync-detail-brief');
+      assert.match(pendingBrief, /星河数据子公司/, 'brief must name the actual removed branch');
+      assert.match(pendingBrief, /33.3|三分之一/, 'brief must explain the significant decrease');
+      assert.match(pendingBrief, /确认|审核/, 'brief must explain that administrator action is needed');
       page.closeDetails();
       assert.equal(page.treeText(), before, 'closing details is not consent');
       assert.equal(page.get('org-sync-dot').hidden, false, 'pending dot must survive reading/closing details');
@@ -170,6 +233,7 @@ async function main() {
       assert.notEqual(page.treeText(), before, 'confirmed candidate should update actual tree content');
       page.openDetails();
       assert.equal(page.get('btn-org-sync-confirm').hidden, true, 'already published result becomes view-only');
+      assert.match(page.text('org-sync-detail-brief'), /星河数据子公司/, 'published task must retain its comparison report');
       page.assertHealthy();
     } finally { page.dom.window.close(); }
   });
@@ -184,7 +248,13 @@ async function main() {
         await completed(page);
         page.openDetails();
         assert.equal(page.get('btn-org-sync-confirm').hidden, true);
-        assert.equal(page.get('btn-org-sync-cancel').hidden, true, 'finished task is view-only');
+        assert.equal(page.get('btn-org-sync-cancel').hidden, true, 'finished task has no pending approval action');
+        const brief = page.text('org-sync-detail-brief');
+        assert(brief.length > 10, 'terminal task needs a concise natural language brief');
+        assert.equal(page.get('btn-org-sync-retry').hidden, scenario !== 'failure', 'only a failed task offers retry');
+        if (scenario === 'success') assert.match(brief, /新业务部/, 'success brief must use actual added node name');
+        if (scenario === 'unchanged') assert.match(brief, /无变化|未发现/, 'unchanged brief must describe comparison outcome');
+        if (scenario === 'failure') assert.match(brief, /失败|无法|未完成/, 'failure brief must explain why comparison did not finish');
         assert.equal(page.text('btn-refresh-org'), '刷新组织', 'finished task releases manual refresh');
         assert.equal(page.document.getElementById('org-sync-row'), null, 'finished task should not keep a separate notification row');
         assert.equal(page.get('btn-org-sync-details').hidden, false, 'finished task should retain a compact details entry');
@@ -192,7 +262,7 @@ async function main() {
           assert.equal(page.treeText(), before, `${scenario} must not change the published tree`);
           assert.equal(page.text('user-tbody'), usersBefore, `${scenario} must preserve published member relationships`);
         }
-        assert.match(page.get('modal-org-sync').textContent, /定时/, 'details must identify scheduled trigger');
+        assert.equal(page.text('org-sync-detail-source'), '系统', 'details must identify the system trigger');
         page.assertHealthy();
       } finally { page.dom.window.close(); }
     });
@@ -215,6 +285,7 @@ async function main() {
       page.openDetails();
       assert.equal(page.get('btn-org-sync-confirm').hidden, true, 'cancelled candidate cannot be published later');
       assert.equal(page.get('btn-org-sync-cancel').hidden, true);
+      assert.match(page.text('org-sync-detail-brief'), /星河数据子公司/, 'cancelled task retains the comparison of its discarded update');
       page.closeDetails();
       page.start('manual', 'success');
       await completed(page);
@@ -243,7 +314,9 @@ async function main() {
       assert.equal(page.text('user-tbody'), usersBefore, 'reload must restore initial users');
       assert.equal(page.get('btn-refresh-org').dataset.status, '', 'reload must discard old task results');
       assert.equal(page.text('btn-refresh-org'), '刷新组织', 'reload restores refresh action');
-      assert.equal(page.get('btn-org-sync-details').hidden, true, 'initial page has no stale task details');
+      assert.equal(page.get('btn-org-sync-details').hidden, false, 'progress entry remains available before the first task');
+      page.openDetails();
+      assert.match(page.text('org-sync-detail-status'), /暂无同步任务/, 'reset leaves an empty progress state');
       assert.equal(page.get('org-sync-dot').hidden, true);
       assert.equal(page.get('btn-refresh-org').disabled, false);
       assert.equal(page.storedTask(), null, 'obsolete local state must be removed');
@@ -257,27 +330,28 @@ async function main() {
       page.start('manual', 'pending');
       page.start('scheduled', 'success');
       page.openDetails();
-      assert.match(page.text('org-sync-detail-source'), /手动/, 'duplicate execution cannot replace the original trigger');
+      assert.match(page.text('org-sync-detail-source'), /admin/, 'duplicate execution cannot replace the original trigger');
       page.closeDetails();
       await completed(page);
       assert.equal(page.get('btn-refresh-org').dataset.status, 'pending', 'running candidate must not be replaced');
       page.start('scheduled', 'success');
       assert.equal(page.get('btn-refresh-org').dataset.status, 'pending', 'new execution must not overwrite an unconfirmed result');
       page.openDetails();
-      assert.match(page.text('org-sync-detail-source'), /手动/);
+      assert.match(page.text('org-sync-detail-source'), /admin/);
       page.assertHealthy();
     } finally { page.dom.window.close(); }
   });
 
-  await test('scheduled tasks use the same active button and latest terminal progress entry', async () => {
+  await test('scheduled tasks use the independent progress button throughout the task lifecycle', async () => {
     const page = loadPage({ syncDelay: 80 });
     try {
       page.start('scheduled', 'pending');
-      assert.equal(page.text('btn-refresh-org'), '同步进度');
-      assert.equal(page.get('btn-org-sync-details').hidden, true);
+      assert.equal(page.text('btn-refresh-org'), '刷新组织');
+      assert.equal(page.get('btn-refresh-org').disabled, true);
+      assert.equal(page.get('btn-org-sync-details').hidden, false);
       page.openDetails();
       const started = page.text('org-sync-detail-start');
-      assert.match(page.text('org-sync-detail-source'), /定时/);
+      assert.equal(page.text('org-sync-detail-source'), '系统');
       page.closeDetails();
       await completed(page);
       page.openDetails();
@@ -293,7 +367,7 @@ async function main() {
       page.get('btn-refresh-org').click();
       assert.equal(page.get('btn-refresh-org').dataset.status, 'running', 'released refresh button starts the next task');
       page.openDetails();
-      assert.match(page.text('org-sync-detail-source'), /手动/, 'new task replaces the prior scheduled result');
+      assert.match(page.text('org-sync-detail-source'), /admin/, 'new task replaces the prior scheduled result');
       page.assertHealthy();
     } finally { page.dom.window.close(); }
   });
