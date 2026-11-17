@@ -1194,6 +1194,9 @@ table.data tr:hover td { background: #fafafa; }
   .org-pane { width:248px; flex-shrink:0; border-right:1px solid #f0f0f0; display:flex; flex-direction:column; min-height:0; background:#fff; }
   .org-pane-head { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:16px 14px 8px; }
   .org-pane-head h2 { font-size:14px; font-weight:600; }
+  .org-pane-head { flex-wrap:wrap; }
+  .org-pane-head .btn-group { flex:none; flex-wrap:nowrap; margin-left:auto; }
+  #btn-org-sync-details { font-size:12px; white-space:nowrap; }
   .org-pane-note { margin:0 14px 8px; color:var(--text-tertiary); font-size:12px; line-height:1.5; }
   .user-pane { flex:1; min-width:0; display:flex; flex-direction:column; padding:16px 20px 12px; }
   .user-pane h1 { font-size:16px; font-weight:600; line-height:1.4; margin:0 0 14px; }
@@ -1233,10 +1236,6 @@ table.data tr:hover td { background: #fafafa; }
 [hidden] { display:none !important; }
 .org-sync-dot { width:7px; height:7px; flex:none; border-radius:50%; background:#d46b08; margin-left:auto; }
 .org-sync-area { padding:0 14px 10px; }
-.org-sync-row { display:flex; align-items:center; gap:8px; min-height:24px; margin-bottom:6px; font-size:12px; }
-.org-sync-status { color:var(--text-secondary); }
-.org-sync-status[data-status="pending"] { color:#ad6800; }
-.org-sync-row .btn-link { font-size:12px; }
 .toast .btn-link { margin-left:12px; white-space:nowrap; pointer-events:auto; }
 .org-sync-demo { margin-top:8px; font-size:12px; color:var(--text-secondary); }
 .org-sync-demo summary { cursor:pointer; width:fit-content; }
@@ -1244,7 +1243,7 @@ table.data tr:hover td { background: #fafafa; }
 .org-sync-demo-controls label { display:grid; gap:4px; }
 .org-sync-demo-controls .input { font-size:12px; }
 .org-sync-demo p { margin:8px 0 0; line-height:1.6; }
-.org-sync-modal { width:520px; max-width:calc(100vw - 32px); }
+.org-sync-modal { width:420px; max-width:calc(100vw - 32px); }
 .org-sync-detail-status { font-weight:600; margin-bottom:18px; }
 .org-sync-detail-status[data-status="pending"] { color:#ad6800; }
 .org-sync-detail-status[data-status="failure"] { color:#cf1322; }
@@ -1253,13 +1252,6 @@ table.data tr:hover td { background: #fafafa; }
 .org-sync-meta div { display:flex; gap:16px; margin:10px 0; }
 .org-sync-meta dt { color:var(--text-secondary); width:60px; flex:none; }
 .org-sync-meta dd { margin:0; }
-.org-sync-summary { margin:20px 0; border-top:1px solid var(--border); padding-top:18px; }
-.org-sync-count-label { font-size:12px; color:var(--text-secondary); }
-#org-sync-detail-count { display:block; font-size:28px; margin:5px 0; }
-#org-sync-detail-diff { color:var(--text-secondary); font-size:13px; margin:0; }
-.org-sync-impact { margin-top:18px; font-size:13px; line-height:1.7; }
-.org-sync-impact p { margin:4px 0 0; color:var(--text-secondary); }
-.org-sync-note { margin:16px 0 0; padding:12px; background:#fafafa; border-radius:4px; font-size:13px; line-height:1.7; color:#595959; }
 
 </style>
 </head>
@@ -1331,16 +1323,13 @@ table.data tr:hover td { background: #fafafa; }
             <aside class="org-pane">
               <div class="org-pane-head">
                 <h2>组织信息</h2>
+                <button class="btn-link" type="button" id="btn-org-sync-details" hidden>同步进度</button>
                 <div class="btn-group">
                   <button class="btn btn-sm" type="button" id="btn-refresh-org">刷新组织</button>
                   <button class="btn btn-sm" type="button" id="btn-expand-all" title="展开或折叠">展开</button>
                 </div>
               </div>
               <div class="org-sync-area">
-                <div class="org-sync-row" id="org-sync-row" hidden>
-                  <span class="org-sync-status" id="org-sync-status" hidden role="status" aria-live="polite"><span id="org-sync-title"></span></span>
-                  <button class="btn-link" type="button" id="btn-org-sync-details" hidden>最近同步</button>
-                </div>
                 <details class="org-sync-demo"><summary>演示场景</summary>
                   <div class="org-sync-demo-controls">
                     <label>触发方式<select class="input" id="org-sync-demo-source"><option value="manual">手动刷新</option><option value="scheduled">定时任务</option></select></label>
@@ -1534,14 +1523,11 @@ table.data tr:hover td { background: #fafafa; }
 
   <div class="modal-mask" id="modal-org-sync">
     <div class="modal org-sync-modal" role="dialog" aria-modal="true" aria-labelledby="org-sync-modal-title">
-      <div class="modal-header"><h3 id="org-sync-modal-title">组织同步详情</h3><button class="btn-icon" type="button" data-close="modal-org-sync" aria-label="关闭">✕</button></div>
+      <div class="modal-header"><h3 id="org-sync-modal-title">同步进度</h3><button class="btn-icon" type="button" data-close="modal-org-sync" aria-label="关闭">✕</button></div>
       <div class="modal-body">
         <div class="org-sync-detail-status" id="org-sync-detail-status"></div>
         <dl class="org-sync-meta"><div><dt>触发方式</dt><dd id="org-sync-detail-source"></dd></div><div><dt>开始时间</dt><dd id="org-sync-detail-start"></dd></div><div><dt>完成时间</dt><dd id="org-sync-detail-end"></dd></div></dl>
-        <div class="org-sync-summary" id="org-sync-detail-summary" hidden>
-          <div class="org-sync-count-label">组织节点数量</div><strong id="org-sync-detail-count"></strong><p id="org-sync-detail-diff"></p>
-          <div class="org-sync-impact"><strong>影响摘要</strong><p id="org-sync-detail-users"></p><p id="org-sync-detail-permission"></p></div>
-        </div><p class="org-sync-note" id="org-sync-detail-note"></p>
+
       </div>
       <div class="modal-footer"><button class="btn" type="button" id="btn-org-sync-close" data-close="modal-org-sync">关闭</button><button class="btn" type="button" id="btn-org-sync-cancel" hidden>取消更新</button><button class="btn btn-primary" type="button" id="btn-org-sync-confirm" hidden>确认更新</button></div>
     </div>
@@ -2408,28 +2394,23 @@ table.data tr:hover td { background: #fafafa; }
     const pending = orgSyncTask.status === "pending";
     toast(pending ? "组织同步完成，变更较大，请确认是否更新。" : syncTitles[orgSyncTask.status],
       orgSyncTask.status === "failure" ? "error" : "info",
-      { label: pending ? "去确认" : "查看详情", run: openOrgSyncDetails });
+      { label: "同步进度", run: openOrgSyncDetails });
   }
 
   function renderOrgSync() {
     const task = orgSyncTask;
     const active = !!task && (syncBusy() || task.status === "pending");
-    const banner = document.getElementById("org-sync-status");
-    document.getElementById("org-sync-row").hidden = !task;
-    banner.hidden = !active;
-    banner.dataset.status = task ? task.status : "";
     const refresh = document.getElementById("btn-refresh-org");
-    refresh.disabled = active;
-    refresh.textContent = syncBusy() ? "同步中" : "刷新组织";
-    refresh.setAttribute("aria-busy", String(!!syncBusy()));
-    document.getElementById("org-sync-demo-start").disabled = refresh.disabled;
+    refresh.disabled = false;
+    refresh.dataset.status = task ? task.status : "";
+    refresh.textContent = active ? "同步进度" : "刷新组织";
+    refresh.setAttribute("aria-label", active ? "同步进度" : "刷新组织");
+    refresh.setAttribute("aria-haspopup", active ? "dialog" : "false");
+    document.getElementById("org-sync-demo-start").disabled = active;
     document.getElementById("org-sync-dot").hidden = !task || !(task.unread || task.status === "pending");
     const detailsButton = document.getElementById("btn-org-sync-details");
-    detailsButton.hidden = !task;
+    detailsButton.hidden = !task || active;
     if (!task) return;
-    document.getElementById("org-sync-title").textContent = task.status === "pending" ? "同步待确认" : "正在同步…";
-    detailsButton.textContent = task.status === "pending" ? "处理" : (syncBusy() ? "查看进度" : "最近同步");
-    detailsButton.title = syncTitles[task.status];
     renderOrgSyncDetails();
   }
 
@@ -2441,22 +2422,7 @@ table.data tr:hover td { background: #fafafa; }
     document.getElementById("org-sync-detail-source").textContent = task.source === "scheduled" ? "定时任务" : "手动刷新";
     document.getElementById("org-sync-detail-start").textContent = syncTime(task.startedAt);
     document.getElementById("org-sync-detail-end").textContent = syncTime(task.completedAt);
-    const stats = task.stats;
-    document.getElementById("org-sync-detail-summary").hidden = !stats;
-    if (stats) {
-      document.getElementById("org-sync-detail-count").textContent = `${stats.before} → ${stats.after}`;
-      document.getElementById("org-sync-detail-diff").textContent = `新增 ${stats.added} · 调整 ${stats.updated} · 删除 ${stats.removed}`;
-      document.getElementById("org-sync-detail-users").textContent = `${stats.affectedUsers} 名用户的组织归属或所属路径发生变化`;
-      document.getElementById("org-sync-detail-permission").textContent = stats.affectedUsers ? "组织来源权限随归属变化重新计算；用户直授权限与账号类型保持不变。" : "组织归属未变化；用户直授权限与账号类型保持不变。";
-    }
-    let note = "正在拉取客户组织及关联用户信息，完成后将提示同步结果。";
-    if (task.status === "pending") note = `组织节点由 ${stats.before} 个减少至 ${stats.after} 个，减少 ${stats.dropPercent}%，已触发 30% 误删保护。确认前继续使用原有组织数据。`;
-    if (task.status === "failure") note = task.error + " 本次结果未发布。";
-    if (task.status === "success") note = "本次组织更新已生效。";
-    if (task.status === "unchanged") note = "本次同步未发现变化，继续使用原有组织数据。";
-    if (task.status === "cancelled") note = "已取消本次更新，继续使用原有组织数据。你可以重新发起同步。";
-    if (task.status === "publishing") note = "正在应用本次变更，完成后将显示更新结果。";
-    document.getElementById("org-sync-detail-note").textContent = note;
+    if (task.status === "failure") document.getElementById("org-sync-detail-status").textContent += "：" + task.error;
     document.getElementById("btn-org-sync-confirm").hidden = task.status !== "pending";
     document.getElementById("btn-org-sync-cancel").hidden = task.status !== "pending";
     document.getElementById("btn-org-sync-close").hidden = task.status === "pending";
@@ -2603,7 +2569,10 @@ table.data tr:hover td { background: #fafafa; }
     return orgSyncTask;
   }
 
-  document.getElementById("btn-refresh-org").addEventListener("click", () => startOrgSync());
+  document.getElementById("btn-refresh-org").addEventListener("click", () => {
+    if (syncBusy() || orgSyncTask?.status === "pending") openOrgSyncDetails();
+    else startOrgSync();
+  });
   document.getElementById("btn-org-sync-details").addEventListener("click", openOrgSyncDetails);
   document.getElementById("btn-org-sync-cancel").addEventListener("click", () => {
     if (!orgSyncTask || orgSyncTask.status !== "pending") return;
@@ -2618,10 +2587,7 @@ table.data tr:hover td { background: #fafafa; }
   });
   document.getElementById("btn-org-sync-confirm").addEventListener("click", () => {
     if (!orgSyncTask || orgSyncTask.status !== "pending") return;
-    const id = orgSyncTask.id;
-    confirmDialog("确认更新组织？", `组织节点将由 <strong>${orgSyncTask.stats.before}</strong> 个减少至 <strong>${orgSyncTask.stats.after}</strong> 个，减少 <strong>${orgSyncTask.stats.dropPercent}%</strong>。<br><br>更新后将调整相关用户的组织归属及组织来源权限；用户直授权限与账号类型保持不变。`, () => {
-      if (orgSyncTask && orgSyncTask.id === id && orgSyncTask.status === "pending") publishOrgSync();
-    }, { okText: "确认更新" });
+    publishOrgSync();
   });
   document.getElementById("org-sync-demo-start").addEventListener("click", () => {
     startOrgSync(document.getElementById("org-sync-demo-source").value, document.getElementById("org-sync-demo-result").value);
